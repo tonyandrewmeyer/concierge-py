@@ -1,0 +1,54 @@
+version: 2
+updates:
+  # Security updates for pip dependencies - immediate
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "daily"
+    open-pull-requests-limit: 10
+    groups:
+      security-updates:
+        dependency-type: "production"
+        update-types:
+          - "patch"
+    labels:
+      - "dependencies"
+      - "security"
+    # Security updates should be created immediately
+    versioning-strategy: increase
+
+  # Regular pip dependency updates - with 14 day cooldown
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+        cooldown:
+          duration: 14
+          unit: "days"
+    labels:
+      - "dependencies"
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  # GitHub Actions updates - immediate for security
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      actions-security:
+        patterns:
+          - "*"
+    labels:
+      - "dependencies"
+      - "github-actions"
