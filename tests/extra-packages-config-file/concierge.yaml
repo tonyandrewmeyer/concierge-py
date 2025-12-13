@@ -1,0 +1,13 @@
+host:
+  packages:
+    - python3-pip
+    - python3-venv
+  snaps:
+    charmcraft:
+      channel: latest/stable
+    jq:
+      channel: latest/stable
+    jhack:
+      channel: latest/edge
+      connections:
+        - jhack:dot-local-share-juju

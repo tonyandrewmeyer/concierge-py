@@ -1,0 +1,9 @@
+providers:
+  microk8s:
+    enable: true
+    bootstrap: true
+    channel: 1.31-strict/stable
+    addons:
+      - hostpath-storage
+      - dns
+      - metallb:10.64.140.43-10.64.140.49

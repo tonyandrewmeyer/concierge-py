@@ -1,0 +1,14 @@
+juju:
+  channel: 4.0/stable
+  model-defaults:
+    test-mode: "true"
+    automatically-retry-hooks: "false"
+
+providers:
+  microk8s:
+    enable: true
+    bootstrap: true
+    channel: 1.31-strict/stable
+    addons:
+      - hostpath-storage
+      - dns

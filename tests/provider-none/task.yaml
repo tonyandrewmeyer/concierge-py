@@ -1,0 +1,16 @@
+summary: Run concierge with no providers, packages, or snaps
+systems:
+  - ubuntu-24.04
+
+execute: |
+  pushd "${SPREAD_PATH}/${SPREAD_TASK}"
+
+  "$SPREAD_PATH"/concierge --trace prepare
+
+  snap list juju | MATCH juju
+  snap list juju | MATCH 4.0/stable
+
+restore: |
+  if [[ -z "${CI:-}" ]]; then
+    "$SPREAD_PATH"/concierge --trace restore
+  fi

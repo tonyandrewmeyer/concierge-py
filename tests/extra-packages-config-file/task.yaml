@@ -1,0 +1,24 @@
+summary: Run concierge with no providers, but add extra snaps/debs from config
+systems:
+  - ubuntu-24.04
+
+execute: |
+  pushd "${SPREAD_PATH}/${SPREAD_TASK}"
+
+  "$SPREAD_PATH"/concierge --trace prepare
+
+  command -v pip | MATCH /usr/bin/pip
+  python3 -m venv -h | head -n1 | grep -q -e "usage: venv"
+
+  list="$(snap list)"
+  echo $list | MATCH charmcraft
+  echo $list | MATCH jq
+  echo $list | MATCH jhack
+
+  # Check jhack got it's interface connected
+  snap connections jhack | MATCH "personal-files  jhack:dot-local-share-juju  :personal-files  manual"
+
+restore: |
+  if [[ -z "${CI:-}" ]]; then
+    "$SPREAD_PATH"/concierge --trace restore
+  fi

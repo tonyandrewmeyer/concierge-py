@@ -1,0 +1,27 @@
+summary: Run concierge with no providers, but add extra debs
+systems:
+  - ubuntu-24.04
+
+execute: |
+  pushd "${SPREAD_PATH}/${SPREAD_TASK}"
+
+  # Create an empty config file
+  touch concierge.yaml
+
+  # Test that extra debs come in from the env var
+  export CONCIERGE_EXTRA_DEBS="make,fortune"
+
+  # Also add some extra debs at the CLI
+  "$SPREAD_PATH"/concierge --trace prepare --extra-debs "cowsay"
+
+  export PATH="/usr/games:$PATH"
+
+  # Check that each of the debs is installed as we expect
+  command -v make | MATCH "/usr/bin/make"
+  command -v cowsay | MATCH "/usr/games/cowsay"
+  command -v fortune | MATCH "/usr/games/fortune"
+
+restore: |
+  if [[ -z "${CI:-}" ]]; then
+    "$SPREAD_PATH"/concierge --trace restore
+  fi
