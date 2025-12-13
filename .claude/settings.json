@@ -1,20 +1,36 @@
 {
-  "alwaysAllowReadOnly": true,
-  "alwaysAllowWrite": false,
-  "conversationLogs": {
+  "sandbox": {
     "enabled": true,
-    "directory": ".claude/logs"
+    "autoAllowBashIfSandboxed": true,
+    "excludedCommands": ["git"],
+    "network": {
+      "allowUnixSockets": [
+        "/run/snapd.socket"
+      ],
+      "allowLocalBinding": true
+    }
   },
-  "search": {
-    "exclude": [
-      "**/__pycache__/**",
-      "**/.venv/**",
-      "**/.pytest_cache/**",
-      "**/.ty_cache/**",
-      "**/.ruff_cache/**",
-      "**/dist/**",
-      "**/build/**",
-      "**/*.egg-info/**"
+  "permissions": {
+    "allow": [
+    ],
+    "ask": [
+    ],
+    "deny": [
+    ],
+    "additionalDirectories": ["../concierge"],
+    "defaultMode": "acceptEdits",
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "uv run ruff format --fix"
+          }
+        ]
+      }
     ]
   }
 }
