@@ -150,10 +150,7 @@ class MicroK8s:
         Raises:
             Exception: If initialization fails
         """
-        cmd = Command(
-            executable="microk8s",
-            args=["status", "--wait-ready", "--timeout", "270"]
-        )
+        cmd = Command(executable="microk8s", args=["status", "--wait-ready", "--timeout", "270"])
         await self.system.run_with_retries(cmd, 5 * 60 * 1000)  # 5 minutes in ms
 
     async def _enable_addons(self) -> None:
@@ -180,10 +177,7 @@ class MicroK8s:
         """
         username = self.system.username()
 
-        cmd = Command(
-            executable="usermod",
-            args=["-a", "-G", self.group_name(), username]
-        )
+        cmd = Command(executable="usermod", args=["-a", "-G", self.group_name(), username])
         await self.system.run(cmd)
 
     async def _setup_kubectl(self) -> None:

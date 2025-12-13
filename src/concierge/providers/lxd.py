@@ -137,17 +137,11 @@ class LXD:
         username = self.system.username()
 
         # Make socket writable by all
-        cmd1 = Command(
-            executable="chmod",
-            args=["a+wr", "/var/snap/lxd/common/lxd/unix.socket"]
-        )
+        cmd1 = Command(executable="chmod", args=["a+wr", "/var/snap/lxd/common/lxd/unix.socket"])
         await self.system.run(cmd1)
 
         # Add user to lxd group
-        cmd2 = Command(
-            executable="usermod",
-            args=["-a", "-G", "lxd", username]
-        )
+        cmd2 = Command(executable="usermod", args=["-a", "-G", "lxd", username])
         await self.system.run(cmd2)
 
     async def _deconflict_firewall(self) -> None:

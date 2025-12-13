@@ -29,4 +29,4 @@ async def _async_status() -> None:
         print(f"Concierge status: {status.value}")
     except FileNotFoundError as e:
         print(f"Error: {e}")
-        logger.error("No previous Concierge preparation found")
+        logger.exception("No previous Concierge preparation found")

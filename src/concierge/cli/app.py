@@ -1,7 +1,16 @@
 """Main CLI application for Concierge."""
 
+import asyncio
+from typing import Annotated
+
 import typer
-from typing_extensions import Annotated
+
+from concierge.cli.commands.prepare import run_prepare
+from concierge.cli.commands.restore import run_restore
+from concierge.cli.commands.status import run_status
+from concierge.config.loader import get_env_overrides
+from concierge.config.models import ConfigOverrides
+from concierge.core.logging import setup_logging
 
 app = typer.Typer(
     name="concierge",
@@ -12,12 +21,12 @@ app = typer.Typer(
 
 @app.callback()
 def main(
-    verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Enable verbose logging")] = False,
+    verbose: Annotated[
+        bool, typer.Option("--verbose", "-v", help="Enable verbose logging")
+    ] = False,
     trace: Annotated[bool, typer.Option("--trace", help="Enable trace logging")] = False,
 ) -> None:
     """Concierge - Charm development environment provisioning."""
-    from concierge.core.logging import setup_logging
-
     setup_logging(verbose=verbose, trace=trace)
 
 
@@ -72,22 +81,20 @@ def prepare(
         typer.Option("--google-credential-file", help="Google Cloud credentials file"),
     ] = "",
     extra_snaps: Annotated[
-        list[str],
+        list[str] | None,
         typer.Option("--extra-snaps", help="Additional snaps to install"),
-    ] = [],
+    ] = None,
     extra_debs: Annotated[
-        list[str],
+        list[str] | None,
         typer.Option("--extra-debs", help="Additional deb packages to install"),
-    ] = [],
+    ] = None,
 ) -> None:
     """Provision a charm development environment."""
-    import asyncio
-
-    from concierge.cli.commands.prepare import run_prepare
-    from concierge.config.loader import get_env_overrides
-    from concierge.config.models import ConfigOverrides
-
     # Merge CLI flags and environment overrides
+    if extra_debs is None:
+        extra_debs = []
+    if extra_snaps is None:
+        extra_snaps = []
     env_overrides = get_env_overrides()
     cli_overrides = ConfigOverrides(
         disable_juju=disable_juju or env_overrides.disable_juju,
@@ -122,18 +129,12 @@ def restore(
     ] = "",
 ) -> None:
     """Restore the system to its pre-Concierge state."""
-    import asyncio
-
-    from concierge.cli.commands.restore import run_restore
-
     asyncio.run(run_restore(config, preset))
 
 
 @app.command()
 def status() -> None:
     """Show the status of the Concierge environment."""
-    from concierge.cli.commands.status import run_status
-
     run_status()
 
 

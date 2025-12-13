@@ -23,7 +23,7 @@ dev = [
     "pytest>=8.0.0",
     "pytest-asyncio>=0.23.0",
     "pytest-cov>=4.1.0",
-    "ty>=0.1.0",
+    "ty>=0.0.1a34",
     "ruff>=0.2.0",
 ]
 
@@ -50,11 +50,17 @@ target-version = "py314"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "ANN", "S", "B", "A", "C4", "DTZ", "T10", "ISC", "ICN", "PIE", "PT", "RET", "SIM", "ARG", "PTH", "PD", "PGH", "PL", "TRY", "NPY", "RUF"]
-ignore = ["ANN101", "ANN102", "ANN401"]
+ignore = [
+    "ANN401",    # Allow Any type annotations
+    "PLR0913",   # Allow many function arguments (CLI commands)
+    "PLR0912",   # Allow many branches in functions
+    "PLR2004",   # Allow magic values in comparisons
+    "TRY003",    # Allow long exception messages
+    "TRY004",    # Allow ValueError instead of TypeError for type checks
+    "TRY300",    # Allow return in try block
+    "TRY301",    # Allow raising in conditionals
+    "TRY400",    # Allow logging.error instead of logging.exception
+    "TRY002",    # Allow raising Exception instead of custom exceptions
+]
 
 [tool.ty]
-python_version = "3.14"
-strict = true
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true

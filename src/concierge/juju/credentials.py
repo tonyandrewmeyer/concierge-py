@@ -21,8 +21,6 @@ def build_credentials_yaml(providers: list[Provider]) -> dict[str, Any]:
         if not provider_creds:
             continue
 
-        credentials_data["credentials"][provider.cloud_name()] = {
-            "concierge": provider_creds
-        }
+        credentials_data["credentials"][provider.cloud_name()] = {"concierge": provider_creds}
 
     return credentials_data

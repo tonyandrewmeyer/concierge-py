@@ -140,10 +140,7 @@ class Plan:
         )
 
         # Prepare/restore providers concurrently
-        provider_tasks = [
-            do_action(provider, action)
-            for provider in self.providers
-        ]
+        provider_tasks = [do_action(provider, action) for provider in self.providers]
         await asyncio.gather(*provider_tasks)
 
         # Skip Juju if disabled
@@ -162,4 +159,3 @@ class Plan:
         """
         # Could add validation logic here
         # For now, this is a placeholder
-        pass

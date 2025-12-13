@@ -196,7 +196,5 @@ def get_preset(name: str) -> ConciergeConfig:
         ValueError: If preset name is not recognized
     """
     if name not in PRESETS:
-        raise ValueError(
-            f"Unknown preset '{name}'. Available presets: {', '.join(PRESETS.keys())}"
-        )
+        raise ValueError(f"Unknown preset '{name}'. Available presets: {', '.join(PRESETS.keys())}")
     return PRESETS[name].model_copy(deep=True)

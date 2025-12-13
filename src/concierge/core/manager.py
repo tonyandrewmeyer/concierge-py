@@ -1,6 +1,5 @@
 """Manager for orchestrating Concierge operations."""
 
-import asyncio
 from pathlib import Path
 
 import structlog
@@ -40,7 +39,7 @@ class Manager:
         try:
             await self._execute("prepare")
             await self._record_runtime_config(Status.SUCCEEDED)
-        except Exception as e:
+        except Exception:
             await self._record_runtime_config(Status.FAILED)
             raise
 

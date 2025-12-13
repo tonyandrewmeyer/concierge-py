@@ -28,11 +28,11 @@ def create_provider(
     """
     if provider_name == "lxd" and config.providers.lxd.enable:
         return LXD(system, config)
-    elif provider_name == "microk8s" and config.providers.microk8s.enable:
+    if provider_name == "microk8s" and config.providers.microk8s.enable:
         return MicroK8s(system, config)
-    elif provider_name == "k8s" and config.providers.k8s.enable:
+    if provider_name == "k8s" and config.providers.k8s.enable:
         return K8s(system, config)
-    elif provider_name == "google" and config.providers.google.enable:
+    if provider_name == "google" and config.providers.google.enable:
         return Google(system, config)
 
     return None

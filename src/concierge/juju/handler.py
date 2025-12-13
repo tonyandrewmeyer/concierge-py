@@ -3,7 +3,6 @@
 import asyncio
 import shlex
 from pathlib import Path
-from typing import Any
 
 import structlog
 import yaml
@@ -142,8 +141,7 @@ class JujuHandler:
 
         # Write to credentials.yaml
         await self.system.write_home_file(
-            Path(".local/share/juju/credentials.yaml"),
-            content.encode("utf-8")
+            Path(".local/share/juju/credentials.yaml"), content.encode("utf-8")
         )
 
     async def _bootstrap(self) -> None:
@@ -153,10 +151,7 @@ class JujuHandler:
             Exception: If bootstrap fails
         """
         # Bootstrap all providers concurrently
-        tasks = [
-            self._bootstrap_provider(provider)
-            for provider in self.providers
-        ]
+        tasks = [self._bootstrap_provider(provider) for provider in self.providers]
         await asyncio.gather(*tasks)
 
     async def _bootstrap_provider(self, provider: Provider) -> None:
@@ -193,13 +188,9 @@ class JujuHandler:
             args.extend(["--agent-version", self.agent_version])
 
         # Merge global and provider-specific configs
-        model_defaults = _merge_dicts(
-            self.model_defaults,
-            provider.model_defaults()
-        )
+        model_defaults = _merge_dicts(self.model_defaults, provider.model_defaults())
         bootstrap_constraints = _merge_dicts(
-            self.bootstrap_constraints,
-            provider.bootstrap_constraints()
+            self.bootstrap_constraints, provider.bootstrap_constraints()
         )
 
         # Add model-defaults
@@ -267,7 +258,7 @@ class JujuHandler:
 
         # If all retries failed, check if it's because controller doesn't exist
         try:
-            output = await self.system.run(cmd)
+            await self.system.run(cmd)
             return True
         except CommandError as e:
             # Check if error is "controller not found"

@@ -1,8 +1,8 @@
 """Snapd HTTP API client for querying snap information."""
 
-import asyncio
+from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import aiohttp
 import structlog
@@ -15,6 +15,9 @@ from tenacity import (
 )
 
 from concierge.system.models import SnapInfo
+
+if TYPE_CHECKING:
+    from concierge.system.runner import System
 
 logger = structlog.get_logger()
 
@@ -210,19 +213,19 @@ class SnapdClient:
         connector = aiohttp.UnixConnector(path=str(self.socket_path))
         timeout = aiohttp.ClientTimeout(total=30)
 
-        async with aiohttp.ClientSession(
-            connector=connector, timeout=timeout
-        ) as session:
-            async with session.request(method, url) as response:
-                response_data = await response.json()
+        async with (
+            aiohttp.ClientSession(connector=connector, timeout=timeout) as session,
+            session.request(method, url) as response,
+        ):
+            response_data = await response.json()
 
-                if response_data.get("status-code") != 200:
-                    error_msg = response_data.get("result", {}).get("message", "Unknown error")
-                    raise Exception(f"Snapd API error: {error_msg}")
+            if response_data.get("status-code") != 200:
+                error_msg = response_data.get("result", {}).get("message", "Unknown error")
+                raise Exception(f"Snapd API error: {error_msg}")
 
-                return response_data.get("result")
+            return response_data.get("result")
 
-    async def _with_retry[T](self, func: callable) -> T:
+    async def _with_retry[T](self, func: Callable[[], Awaitable[T]]) -> T:
         """Execute a function with retry logic.
 
         Args:
@@ -244,8 +247,9 @@ class SnapdClient:
                 with attempt:
                     return await func()
         except RetryError as e:
-            if e.last_attempt.exception():
-                raise e.last_attempt.exception() from e
+            exc = e.last_attempt.exception()
+            if exc is not None:
+                raise exc from e
             raise
 
         # This should never be reached
@@ -253,7 +257,7 @@ class SnapdClient:
 
 
 # Integrate snapd client with System class
-def add_snap_support(system: "System") -> None:
+def add_snap_support(system: System) -> None:
     """Add snap support methods to a System instance.
 
     This function patches the System class to add snap_info and snap_channels methods.
@@ -270,5 +274,5 @@ def add_snap_support(system: "System") -> None:
         return await snapd_client.snap_channels(snap)
 
     # Bind methods to the instance
-    system.snap_info = snap_info  # type: ignore
-    system.snap_channels = snap_channels  # type: ignore
+    system.snap_info = snap_info  # type: ignore[attr-defined]
+    system.snap_channels = snap_channels  # type: ignore[attr-defined]

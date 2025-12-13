@@ -2,12 +2,11 @@
 
 import os
 from pathlib import Path
-from typing import Any
 
 import structlog
 import yaml
 
-from concierge.config.models import ConciergeConfig, ConfigOverrides
+from concierge.config.models import ConciergeConfig, ConfigOverrides, SnapConfig
 from concierge.config.presets import get_preset
 
 logger = structlog.get_logger()
@@ -83,8 +82,7 @@ def _load_from_file(path: Path) -> ConciergeConfig:
         if not isinstance(data, dict):
             raise ValueError("Configuration file must contain a YAML mapping")
 
-        config = ConciergeConfig.model_validate(data)
-        return config
+        return ConciergeConfig.model_validate(data)
 
     except yaml.YAMLError as e:
         raise ValueError(f"Invalid YAML in configuration file: {e}") from e
@@ -122,29 +120,21 @@ def _apply_overrides(config: ConciergeConfig, overrides: ConfigOverrides) -> Non
     # Snap channel overrides
     if overrides.charmcraft_channel:
         if "charmcraft" not in config.host.snaps:
-            from concierge.config.models import SnapConfig
-
             config.host.snaps["charmcraft"] = SnapConfig()
         config.host.snaps["charmcraft"].channel = overrides.charmcraft_channel
 
     if overrides.snapcraft_channel:
         if "snapcraft" not in config.host.snaps:
-            from concierge.config.models import SnapConfig
-
             config.host.snaps["snapcraft"] = SnapConfig()
         config.host.snaps["snapcraft"].channel = overrides.snapcraft_channel
 
     if overrides.rockcraft_channel:
         if "rockcraft" not in config.host.snaps:
-            from concierge.config.models import SnapConfig
-
             config.host.snaps["rockcraft"] = SnapConfig()
         config.host.snaps["rockcraft"].channel = overrides.rockcraft_channel
 
     # Extra snaps
     if overrides.extra_snaps:
-        from concierge.config.models import SnapConfig
-
         for snap_name in overrides.extra_snaps:
             if snap_name not in config.host.snaps:
                 config.host.snaps[snap_name] = SnapConfig()

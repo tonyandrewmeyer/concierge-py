@@ -2,8 +2,8 @@
 
 import asyncio
 import os
+import pwd
 import shutil
-from collections.abc import Callable
 from pathlib import Path
 
 import structlog
@@ -140,7 +140,9 @@ class System:
             output_str = stdout.decode("utf-8", errors="replace")
             if self._trace:
                 self._print_trace(command_string, output_str)
-            raise CommandError(command_string, process.returncode, output_str)
+            # After communicate(), returncode should always be set
+            returncode = process.returncode if process.returncode is not None else 1
+            raise CommandError(command_string, returncode, output_str)
 
         if self._trace:
             output_str = stdout.decode("utf-8", errors="replace")
@@ -196,8 +198,9 @@ class System:
                     return await self.run(cmd)
         except RetryError as e:
             # Re-raise the original exception
-            if e.last_attempt.exception():
-                raise e.last_attempt.exception() from e
+            exc = e.last_attempt.exception()
+            if exc is not None:
+                raise exc from e
             raise
 
         # This should never be reached due to reraise=True
@@ -342,8 +345,6 @@ class System:
             return
 
         # Get UID/GID for the real user
-        import pwd
-
         try:
             user_info = pwd.getpwnam(sudo_user)
             uid = user_info.pw_uid

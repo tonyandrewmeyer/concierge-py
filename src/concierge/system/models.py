@@ -33,7 +33,7 @@ class Snap:
     connections: list[str] = field(default_factory=list)
 
     @staticmethod
-    def from_string(snap_str: str) -> "Snap":
+    def from_string(snap_str: str) -> Snap:
         """Parse a snap from shorthand form (e.g., 'charmcraft/latest/edge').
 
         Args:

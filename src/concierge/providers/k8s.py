@@ -115,6 +115,7 @@ class K8s:
         Raises:
             Exception: If installation fails
         """
+
         async def install_iptables() -> None:
             """Install iptables if not present."""
             try:
@@ -147,10 +148,7 @@ class K8s:
             await self.system.run_with_retries(cmd, 5 * 60 * 1000)  # 5 minutes in ms
 
         # Wait for cluster to be ready
-        cmd = Command(
-            executable="k8s",
-            args=["status", "--wait-ready", "--timeout", "270s"]
-        )
+        cmd = Command(executable="k8s", args=["status", "--wait-ready", "--timeout", "270s"])
         await self.system.run_with_retries(cmd, 5 * 60 * 1000)  # 5 minutes in ms
 
     async def _needs_bootstrap(self) -> bool:

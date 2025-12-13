@@ -95,9 +95,7 @@ class SnapHandler:
             # Parse connection string (format: "plug" or "plug slot")
             parts = connection.split()
             if len(parts) > 2:
-                raise ValueError(
-                    f"Too many arguments in snap connection string '{connection}'"
-                )
+                raise ValueError(f"Too many arguments in snap connection string '{connection}'")
 
             args = ["connect", *parts]
 
