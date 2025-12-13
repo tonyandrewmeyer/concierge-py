@@ -88,7 +88,7 @@ src/concierge/
 uv run pytest
 
 # Type checking
-uv run mypy src/
+uv run ty src/
 
 # Linting
 uv run ruff check src/

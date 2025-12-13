@@ -57,8 +57,8 @@ jobs:
           uv venv
           uv pip install -e ".[dev]"
 
-      - name: Type check with mypy
-        run: uv run mypy src/
+      - name: Type check with ty
+        run: uv run ty src/
 
   test:
     name: Unit Tests

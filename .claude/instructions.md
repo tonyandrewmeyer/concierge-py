@@ -16,7 +16,7 @@ Installs LXD, K8s (MicroK8s or Canonical K8s), Juju, and development tools.
 
 ## Tech Stack
 
-- **Python 3.14+** with strict typing (mypy)
+- **Python 3.14+** with strict typing (ty)
 - **asyncio** for concurrency (replaces Go goroutines)
 - **Typer** for CLI with rich output
 - **Pydantic** for configuration validation
@@ -30,12 +30,12 @@ Installs LXD, K8s (MicroK8s or Canonical K8s), Juju, and development tools.
 1. Use `uv` for all package operations (not pip directly)
 2. Run `uv venv` to create virtual environment
 3. Run `uv pip install -e ".[dev]"` to install with dev dependencies
-4. All code must pass: ruff format, ruff check, mypy, pytest
+4. All code must pass: ruff format, ruff check, ty, pytest
 
 ## Code Style
 
 - **Line length**: 100 characters
-- **Type hints**: Required on all functions (mypy strict mode enabled)
+- **Type hints**: Required on all functions (ty strict mode enabled)
 - **Linting**: Use ruff for both linting and formatting
 - **Async patterns**: Follow asyncio best practices (no blocking I/O in async functions)
 - **Logging**: Use structlog with structured context
@@ -67,7 +67,7 @@ The tool supports several presets (defined in src/concierge/config/presets.py):
 ### Development
 - `uv run pytest` - Run all tests
 - `uv run pytest tests/unit/` - Run unit tests only
-- `uv run mypy src/` - Type check the codebase
+- `uv run ty src/` - Type check the codebase
 - `uv run ruff check src/` - Lint the code
 - `uv run ruff format src/` - Format the code
 
@@ -79,7 +79,7 @@ The tool supports several presets (defined in src/concierge/config/presets.py):
 ### CI Pipeline (matches GitHub Actions)
 1. Format check: `uv run ruff format --check src/ tests/`
 2. Lint: `uv run ruff check src/ tests/`
-3. Type check: `uv run mypy src/`
+3. Type check: `uv run ty src/`
 4. Tests: `uv run pytest tests/unit/ -v --cov=src/concierge --cov-report=term-missing`
 
 ## Important Notes

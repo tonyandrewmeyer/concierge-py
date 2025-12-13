@@ -8,6 +8,6 @@ hooks:
   # Type check after editing Python files
   - trigger: after_edit
     pattern: "**/*.py"
-    command: "uv run mypy {file}"
+    command: "uv run ty {file}"
     description: "Type check edited Python file"
     continueOnError: true

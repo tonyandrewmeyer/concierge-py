@@ -14,7 +14,7 @@ uv run ruff check src/ tests/
 
 3. Type check:
 ```bash
-uv run mypy src/
+uv run ty src/
 ```
 
 4. Tests:
@@ -26,6 +26,6 @@ Or run all at once:
 ```bash
 uv run ruff format --check src/ tests/ && \
 uv run ruff check src/ tests/ && \
-uv run mypy src/ && \
+uv run ty src/ && \
 uv run pytest tests/unit/ -v --cov=src/concierge --cov-report=term-missing
 ```
