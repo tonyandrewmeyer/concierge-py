@@ -2,12 +2,11 @@
 
 import asyncio
 
-import structlog
-
 from concierge.config.models import ConciergeConfig
+from concierge.core.logging import get_logger
 from concierge.core.manager import Manager
 
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 
 def run_status() -> None:

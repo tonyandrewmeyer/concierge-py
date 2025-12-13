@@ -3,13 +3,13 @@
 import os
 from pathlib import Path
 
-import structlog
 import yaml
 
 from concierge.config.models import ConciergeConfig, ConfigOverrides, SnapConfig
 from concierge.config.presets import get_preset
+from concierge.core.logging import get_logger
 
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 
 def load_config(

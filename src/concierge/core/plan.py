@@ -2,10 +2,9 @@
 
 import asyncio
 
-import structlog
-
 from concierge.config.models import ConciergeConfig
 from concierge.core.executable import Executable
+from concierge.core.logging import get_logger
 from concierge.juju.handler import JujuHandler
 from concierge.packages.deb_handler import DebHandler
 from concierge.packages.snap_handler import SnapHandler
@@ -14,7 +13,7 @@ from concierge.providers.factory import SUPPORTED_PROVIDERS, create_provider
 from concierge.system.models import Snap
 from concierge.system.worker import Worker
 
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 
 async def do_action(executable: Executable, action: str) -> None:

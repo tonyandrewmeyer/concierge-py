@@ -1,12 +1,11 @@
 """Snap package handler for installing and managing snaps."""
 
-import structlog
-
+from concierge.core.logging import get_logger
 from concierge.system.command import Command
 from concierge.system.models import Snap
 from concierge.system.worker import Worker
 
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 
 class SnapHandler:

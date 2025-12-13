@@ -1,12 +1,11 @@
 """Prepare command implementation."""
 
-import structlog
-
 from concierge.config.loader import load_config
 from concierge.config.models import ConfigOverrides
+from concierge.core.logging import get_logger
 from concierge.core.manager import Manager
 
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 
 async def run_prepare(

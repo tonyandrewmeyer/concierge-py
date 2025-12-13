@@ -3,13 +3,13 @@
 from pathlib import Path
 from typing import Any
 
-import structlog
 import yaml
 
 from concierge.config.models import ConciergeConfig
+from concierge.core.logging import get_logger
 from concierge.system.worker import Worker
 
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 
 class Google:

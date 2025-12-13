@@ -6,7 +6,6 @@ import pwd
 import shutil
 from pathlib import Path
 
-import structlog
 from tenacity import (
     AsyncRetrying,
     RetryError,
@@ -14,11 +13,12 @@ from tenacity import (
     wait_exponential,
 )
 
+from concierge.core.logging import get_logger
 from concierge.system.command import Command, CommandError
 from concierge.system.models import SnapInfo
 from concierge.system.snap import SnapdClient
 
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 
 def _get_shell_path() -> str:

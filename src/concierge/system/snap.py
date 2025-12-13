@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import aiohttp
-import structlog
 from tenacity import (
     AsyncRetrying,
     RetryError,
@@ -14,12 +13,13 @@ from tenacity import (
     wait_exponential,
 )
 
+from concierge.core.logging import get_logger
 from concierge.system.models import SnapInfo
 
 if TYPE_CHECKING:
     from concierge.system.runner import System
 
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 SNAPD_SOCKET = Path("/run/snapd.socket")
 

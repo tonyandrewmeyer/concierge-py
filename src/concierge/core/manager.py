@@ -2,14 +2,14 @@
 
 from pathlib import Path
 
-import structlog
 import yaml
 
 from concierge.config.models import ConciergeConfig, Status
+from concierge.core.logging import get_logger
 from concierge.core.plan import Plan
 from concierge.system.runner import System
 
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 
 class Manager:

@@ -4,7 +4,6 @@ import asyncio
 import shlex
 from pathlib import Path
 
-import structlog
 import yaml
 from tenacity import (
     AsyncRetrying,
@@ -15,6 +14,7 @@ from tenacity import (
 )
 
 from concierge.config.models import ConciergeConfig
+from concierge.core.logging import get_logger
 from concierge.juju.credentials import build_credentials_yaml
 from concierge.packages.snap_handler import SnapHandler
 from concierge.providers.base import Provider
@@ -22,7 +22,7 @@ from concierge.system.command import Command, CommandError
 from concierge.system.models import Snap
 from concierge.system.worker import Worker
 
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 
 def _merge_dicts[T](base: dict[str, T], override: dict[str, T]) -> dict[str, T]:

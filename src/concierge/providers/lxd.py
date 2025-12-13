@@ -2,15 +2,14 @@
 
 from typing import Any
 
-import structlog
-
 from concierge.config.models import ConciergeConfig
+from concierge.core.logging import get_logger
 from concierge.packages.snap_handler import SnapHandler
 from concierge.system.command import Command
 from concierge.system.models import Snap
 from concierge.system.worker import Worker
 
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 
 class LXD:

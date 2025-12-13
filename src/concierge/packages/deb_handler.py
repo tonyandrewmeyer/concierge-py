@@ -1,11 +1,10 @@
 """Debian package handler for installing and managing apt packages."""
 
-import structlog
-
+from concierge.core.logging import get_logger
 from concierge.system.command import Command
 from concierge.system.worker import Worker
 
-logger = structlog.get_logger()
+logger = get_logger(__name__)
 
 
 class DebHandler:
