@@ -1,0 +1,20 @@
+{
+  "alwaysAllowReadOnly": true,
+  "alwaysAllowWrite": false,
+  "conversationLogs": {
+    "enabled": true,
+    "directory": ".claude/logs"
+  },
+  "search": {
+    "exclude": [
+      "**/__pycache__/**",
+      "**/.venv/**",
+      "**/.pytest_cache/**",
+      "**/.mypy_cache/**",
+      "**/.ruff_cache/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/*.egg-info/**"
+    ]
+  }
+}

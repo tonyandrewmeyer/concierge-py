@@ -1,0 +1,13 @@
+hooks:
+  # Auto-format Python files before writing
+  - trigger: before_write
+    pattern: "**/*.py"
+    command: "uv run ruff format {file}"
+    description: "Format Python file with ruff"
+
+  # Type check after editing Python files
+  - trigger: after_edit
+    pattern: "**/*.py"
+    command: "uv run mypy {file}"
+    description: "Type check edited Python file"
+    continueOnError: true
