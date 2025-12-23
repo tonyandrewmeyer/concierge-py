@@ -10,6 +10,7 @@ from concierge.cli.commands.restore import run_restore
 from concierge.cli.commands.status import run_status
 from concierge.config.loader import get_env_overrides
 from concierge.config.models import ConfigOverrides
+from concierge.config.presets import get_available_presets
 from concierge.core.logging import setup_logging
 
 app = typer.Typer(
@@ -95,6 +96,17 @@ def prepare(
         extra_debs = []
     if extra_snaps is None:
         extra_snaps = []
+
+    # Validate preset if provided
+    if preset:
+        available = get_available_presets()
+        if preset not in available:
+            typer.echo(
+                f"Error: Unknown preset '{preset}'. Available presets: {', '.join(available)}",
+                err=True,
+            )
+            raise typer.Exit(code=1)
+
     env_overrides = get_env_overrides()
     cli_overrides = ConfigOverrides(
         disable_juju=disable_juju or env_overrides.disable_juju,
@@ -129,6 +141,16 @@ def restore(
     ] = "",
 ) -> None:
     """Restore the system to its pre-Concierge state."""
+    # Validate preset if provided
+    if preset:
+        available = get_available_presets()
+        if preset not in available:
+            typer.echo(
+                f"Error: Unknown preset '{preset}'. Available presets: {', '.join(available)}",
+                err=True,
+            )
+            raise typer.Exit(code=1)
+
     asyncio.run(run_restore(config, preset))
 
 

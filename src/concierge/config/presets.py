@@ -183,6 +183,15 @@ PRESETS: dict[str, ConciergeConfig] = {
 }
 
 
+def get_available_presets() -> list[str]:
+    """Get list of available preset names.
+
+    Returns:
+        List of preset names
+    """
+    return list(PRESETS.keys())
+
+
 def get_preset(name: str) -> ConciergeConfig:
     """Get a configuration preset by name.
 
