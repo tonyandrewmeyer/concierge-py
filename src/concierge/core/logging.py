@@ -49,23 +49,17 @@ class StructuredLoggerAdapter(logging.LoggerAdapter):
         return msg, clean_kwargs
 
 
-def setup_logging(verbose: bool = False, trace: bool = False) -> None:
+def setup_logging(verbose: bool = False) -> None:
     """Configure structured logging with rich integration.
 
     This function sets up the logging system with rich's RichHandler for
     colored output, timestamps, and enhanced exception formatting.
 
     Args:
-        verbose: Enable verbose (INFO) logging
-        trace: Enable trace (DEBUG) logging with local variables in tracebacks
+        verbose: Enable debug logging
     """
     # Determine log level based on flags
-    if trace:
-        log_level = logging.DEBUG
-    elif verbose:
-        log_level = logging.INFO
-    else:
-        log_level = logging.WARNING
+    log_level = logging.DEBUG if verbose else logging.INFO
 
     # Configure rich console for stderr output
     console = Console(stderr=True, force_terminal=True)
@@ -74,10 +68,10 @@ def setup_logging(verbose: bool = False, trace: bool = False) -> None:
     handler = RichHandler(
         console=console,
         show_time=True,  # Show timestamps
-        show_path=True,  # Show module and line number
+        show_path=False,  # Hide module and line number
         markup=True,  # Enable rich markup in messages
         rich_tracebacks=True,  # Enhanced exception rendering
-        tracebacks_show_locals=trace,  # Show local vars only in trace mode
+        tracebacks_show_locals=verbose,  # Show local vars in verbose mode
         log_time_format="[%Y-%m-%d %H:%M:%S]",
     )
 
