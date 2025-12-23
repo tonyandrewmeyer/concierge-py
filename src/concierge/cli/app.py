@@ -1,6 +1,7 @@
 """Main CLI application for Concierge."""
 
 import asyncio
+import os
 from typing import Annotated
 
 import typer
@@ -12,6 +13,7 @@ from concierge.config.loader import get_env_overrides
 from concierge.config.models import ConfigOverrides
 from concierge.config.presets import get_available_presets
 from concierge.core.logging import setup_logging
+from concierge.system.command import CommandError
 
 app = typer.Typer(
     name="concierge",
@@ -122,7 +124,22 @@ def prepare(
         extra_debs=extra_debs or env_overrides.extra_debs,
     )
 
-    asyncio.run(run_prepare(config, preset, cli_overrides))
+    try:
+        asyncio.run(run_prepare(config, preset, cli_overrides))
+    except CommandError as e:
+        # Check for permission-related errors
+        if os.geteuid() != 0 and (
+            "Permission denied" in e.output
+            or "Could not open lock file" in e.output
+            or e.returncode == 100
+        ):
+            typer.echo(
+                "Error: This command requires root privileges. Please run with sudo.",
+                err=True,
+            )
+            raise typer.Exit(code=1) from e
+        # Re-raise for other command errors to show full context
+        raise
 
 
 @app.command()
@@ -151,7 +168,22 @@ def restore(
             )
             raise typer.Exit(code=1)
 
-    asyncio.run(run_restore(config, preset))
+    try:
+        asyncio.run(run_restore(config, preset))
+    except CommandError as e:
+        # Check for permission-related errors
+        if os.geteuid() != 0 and (
+            "Permission denied" in e.output
+            or "Could not open lock file" in e.output
+            or e.returncode == 100
+        ):
+            typer.echo(
+                "Error: This command requires root privileges. Please run with sudo.",
+                err=True,
+            )
+            raise typer.Exit(code=1) from e
+        # Re-raise for other command errors to show full context
+        raise
 
 
 @app.command()
