@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING, Any
 import aiohttp
 from tenacity import (
     AsyncRetrying,
+    RetryCallState,
     RetryError,
-    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
 )
@@ -237,11 +237,37 @@ class SnapdClient:
         Raises:
             Exception: If all retries fail
         """
+
+        def should_retry(retry_state: RetryCallState) -> bool:
+            """Determine if an exception should trigger a retry.
+
+            Returns:
+                False for permanent failures like "snap not installed" or "not found"
+            """
+            if retry_state.outcome is None:
+                return True
+
+            exception = retry_state.outcome.exception()
+            if exception is None:
+                return False
+
+            error_str = str(exception).lower()
+            # Don't retry on expected/permanent errors
+            return not any(
+                msg in error_str
+                for msg in [
+                    "snap not installed",
+                    "not found",
+                    "snap not available",
+                    "invalid",
+                ]
+            )
+
         try:
             async for attempt in AsyncRetrying(
                 wait=wait_exponential(multiplier=1, min=1, max=10),
                 stop=stop_after_attempt(10),
-                retry=retry_if_exception_type(Exception),
+                retry=should_retry,
                 reraise=True,
             ):
                 with attempt:
