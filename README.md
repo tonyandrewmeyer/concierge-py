@@ -10,7 +10,7 @@
   <a href="https://github.com/tonyandrewmeyer/concierge-py/actions/workflows/release.yaml"><img src="https://github.com/tonyandrewmeyer/concierge-py/actions/workflows/release.yaml/badge.svg"></a>
 </p>
 
-[`concierge`](https://github.com/canonical/concierge) is an opinionated utility for provisioning charm development and testing machines. `concierge-py` is a reimplementation in Python.
+[`concierge`](https://github.com/canonical/concierge) is an opinionated utility for provisioning charm development and testing machines. `concierge-py` is a reimplementation (vibespiled) in Python.
 
 Its role is to ensure that a given machine has the relevant "craft" tools and providers installed,
 then bootstrap a Juju controller onto each of the providers. Additionally, it can install selected
@@ -45,12 +45,12 @@ Or you can clone, build and run like so:
 ```shell
 git clone https://github.com/tonyandrewmeyer/concierge-py
 cd concierge-py
-sudo uv run concierge-py -h
+sudo uv run concierge -h
 ```
 
 ## Usage
 
-The output of `concierge-py --help` can be seen below.
+The output of `concierge --help` can be seen below.
 
 ```
 concierge is an opinionated utility for provisioning charm development and testing machines.
@@ -367,21 +367,21 @@ host:
 This project uses [goreleaser](https://goreleaser.com/) to build and release, and `spread` for
 integration testing,
 
-You can get started by just using Go, or with `goreleaser`:
+You can get started by just using `uv`:
 
 ```shell
 # Clone the repository
-git clone https://github.com/canonical/concierge
-cd concierge
+git clone https://github.com/tonyandrewmeyer/cconcierge-py
+cd concierge-py
 
 # Build/run with Go
-go run .
+uv run concierge
 
 # Run the unit tests
-go test ./...
+uv run pytest
 
 # Build a snapshot release with goreleaser (output in ./dist)
-goreleaser build --clean --snapshot
+uv build
 ```
 
 ### Testing
