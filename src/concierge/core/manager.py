@@ -105,7 +105,7 @@ class Manager:
         self.config.status = status
 
         # Serialize config to YAML
-        config_dict = self.config.model_dump(by_alias=True)
+        config_dict = self.config.model_dump(mode="json", by_alias=True)
         config_yaml = yaml.safe_dump(config_dict, default_flow_style=False)
 
         # Write to cache
