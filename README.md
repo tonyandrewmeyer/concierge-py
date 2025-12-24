@@ -53,30 +53,21 @@ sudo uv run concierge -h
 The output of `concierge --help` can be seen below.
 
 ```
-concierge is an opinionated utility for provisioning charm development and testing machines.
-
-Its role is to ensure that a given machine has the relevant "craft" tools and providers installed,
-then bootstrap a Juju controller onto each of the providers. Additionally, it can install selected
-tools from the [snap store](https://snapcraft.io) or the Ubuntu archive.
-
-Usage:
-  concierge-py [flags]
-  concierge-py [command]
-
-Available Commands:
-  completion  Generate the autocompletion script for the specified shell
-  help        Help about any command
-  prepare     Provision the machine according to the configuration.
-  restore     Run the reverse of `concierge prepare`.
-  status      Report the status of `concierge` on the machine.
-
-Flags:
-  -h, --help      help for concierge
-      --trace     enable trace logging
-  -v, --verbose   enable verbose logging
-      --version   version for concierge
-
-Use "concierge-py [command] --help" for more information about a command.
+ Usage: concierge [OPTIONS] COMMAND [ARGS]...                                                                                                                                                                                 
+                                                                                                                                                                                                                              
+ Provision and manage charm development environments                                                                                                                                                                          
+                                                                                                                                                                                                                              
+╭─ Options ──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ --verbose             -v        Enable debug logging                                                                                                                                                                       │
+│ --install-completion            Install completion for the current shell.                                                                                                                                                  │
+│ --show-completion               Show completion for the current shell, to copy it or customize the installation.                                                                                                           │
+│ --help                          Show this message and exit.                                                                                                                                                                │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+╭─ Commands ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ prepare   Provision a charm development environment.                                                                                                                                                                       │
+│ restore   Restore the system to its pre-Concierge state.                                                                                                                                                                   │
+│ status    Show the status of the Concierge environment.                                                                                                                                                                    │
+╰────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
 Some flags can be set by environment variable, and if specified by flag and environment variable,
