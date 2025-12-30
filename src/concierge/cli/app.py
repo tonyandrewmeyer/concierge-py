@@ -24,9 +24,7 @@ app = typer.Typer(
 
 @app.callback()
 def main(
-    verbose: Annotated[
-        bool, typer.Option("--verbose", "-v", help="Enable debug logging")
-    ] = False,
+    verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Enable debug logging")] = False,
 ) -> None:
     """Concierge - Charm development environment provisioning."""
     setup_logging(verbose=verbose)
