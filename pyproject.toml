@@ -1,5 +1,5 @@
 [project]
-name = "concierge"
+name = "charm-concierge"
 version = "0.1.0"
 description = "A tool to provision and manage charm development environments"
 readme = "README.md"
