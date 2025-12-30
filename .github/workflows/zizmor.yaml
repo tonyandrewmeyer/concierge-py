@@ -1,41 +1,25 @@
-name: Zizmor Security Scan
+name: GitHub Actions Security Analysis with zizmor 🌈
 
 on:
   push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/**'
+    branches: ["main"]
   pull_request:
-    paths:
-      - '.github/workflows/**'
-  schedule:
-    # Run weekly on Mondays at 9:00 UTC
-    - cron: '0 9 * * 1'
+    branches: ["**"]
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   zizmor:
-    name: Scan GitHub Actions Workflows
-    runs-on: ubuntu-24.04
+    name: Run zizmor 🌈
+    runs-on: ubuntu-latest
     permissions:
-      security-events: write
+      security-events: write # Required for upload-sarif (used by zizmor-action) to upload SARIF files.
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           persist-credentials: false
 
-      - name: Run Zizmor
-        uses: woodruffw/zizmor-action@v1
-        with:
-          # Upload SARIF results to GitHub Security tab
-          sarif-output: zizmor-results.sarif
-
-      - name: Upload SARIF file
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: zizmor-results.sarif
-          category: zizmor
+      - name: Run zizmor 🌈
+        uses: zizmorcore/zizmor-action@e639db99335bc9038abc0e066dfcd72e23d26fb4 # v0.3.0
+ 
