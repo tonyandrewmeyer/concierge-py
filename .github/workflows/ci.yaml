@@ -58,7 +58,7 @@ jobs:
           uv pip install -e ".[dev]"
 
       - name: Type check with ty
-        run: uv run ty src/
+        run: uv run ty check src/
 
   test:
     name: Unit Tests
