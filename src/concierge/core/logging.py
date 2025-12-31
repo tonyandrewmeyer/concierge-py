@@ -49,7 +49,7 @@ class StructuredLoggerAdapter(logging.LoggerAdapter):
         return msg, clean_kwargs
 
 
-def setup_logging(verbose: bool = False) -> None:
+def setup_logging(verbose: bool = False, trace: bool = False) -> None:
     """Configure structured logging with rich integration.
 
     This function sets up the logging system with rich's RichHandler for
@@ -57,9 +57,15 @@ def setup_logging(verbose: bool = False) -> None:
 
     Args:
         verbose: Enable debug logging
+        trace: Enable trace logging (most verbose)
     """
     # Determine log level based on flags
-    log_level = logging.DEBUG if verbose else logging.INFO
+    if trace:
+        log_level = logging.DEBUG  # Use DEBUG for trace (most verbose)
+    elif verbose:
+        log_level = logging.DEBUG
+    else:
+        log_level = logging.INFO
 
     # Configure rich console for stderr output
     console = Console(stderr=True, force_terminal=True)
@@ -68,10 +74,10 @@ def setup_logging(verbose: bool = False) -> None:
     handler = RichHandler(
         console=console,
         show_time=True,  # Show timestamps
-        show_path=False,  # Hide module and line number
+        show_path=trace,  # Show module and line number in trace mode
         markup=True,  # Enable rich markup in messages
         rich_tracebacks=True,  # Enhanced exception rendering
-        tracebacks_show_locals=verbose,  # Show local vars in verbose mode
+        tracebacks_show_locals=verbose or trace,  # Show local vars in verbose/trace mode
         log_time_format="[%Y-%m-%d %H:%M:%S]",
     )
 
