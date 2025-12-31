@@ -37,11 +37,12 @@ jobs:
       - name: Install spread
         run: |
           go install github.com/snapcore/spread/cmd/spread@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
 
       - name: Generate matrix list
         id: suites
         run: |
-          list="$(spread -list github-ci | sed "s|github-ci:ubuntu-24.04:tests/||g" | jq -r -ncR '[inputs | select(length>0)]')"
+          list="$($HOME/go/bin/spread -list github-ci | sed "s|github-ci:ubuntu-24.04:tests/||g" | jq -r -ncR '[inputs | select(length>0)]')"
           echo "suites=$list"
           echo "suites=$list" >> $GITHUB_OUTPUT
 
@@ -83,9 +84,10 @@ jobs:
       - name: Install spread
         run: |
           go install github.com/snapcore/spread/cmd/spread@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
 
       - name: Run integration tests
         env:
           SUITE: ${{ matrix.suite }}
         run: |
-          spread -v "github-ci:ubuntu-24.04:tests/${SUITE}"
+          $HOME/go/bin/spread -v "github-ci:ubuntu-24.04:tests/${SUITE}"
