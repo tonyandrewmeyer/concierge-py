@@ -142,6 +142,9 @@ def _apply_overrides(config: ConciergeConfig, overrides: ConfigOverrides) -> Non
             snap = Snap.from_string(snap_str)
             if snap.name not in config.host.snaps:
                 config.host.snaps[snap.name] = SnapConfig(channel=snap.channel)
+            elif snap.channel:
+                # Update channel if specified (overrides preset/config channel)
+                config.host.snaps[snap.name].channel = snap.channel
 
     # Extra debs
     if overrides.extra_debs:
