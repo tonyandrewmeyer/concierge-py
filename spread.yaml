@@ -90,4 +90,16 @@ prepare: |
   pushd "$SPREAD_PATH"
 
   sudo snap install astral-uv --classic
- 
+
+  uv venv
+  uv pip install -e .
+
+  # Create a wrapper script that runs the Python version via uv.
+  cat > "$SPREAD_PATH/concierge" <<'EOF'
+#!/bin/bash
+cd /root/proj
+exec uv run concierge "$@"
+EOF
+  chmod +x "$SPREAD_PATH/concierge"
+
+  popd
