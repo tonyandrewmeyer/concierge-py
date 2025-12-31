@@ -89,5 +89,5 @@ prepare: |
 
   pushd "$SPREAD_PATH"
 
-  sudo snap install astral-uv
+  sudo snap install astral-uv --classic
  
