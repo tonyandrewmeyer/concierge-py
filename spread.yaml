@@ -95,8 +95,8 @@ prepare: |
   uv pip install -e .
 
   # Create a wrapper script that runs the Python version via uv.
-  # Use --directory to specify the project root without changing cwd
-  printf '#!/bin/bash\nexec uv run --directory /root/proj concierge "$@"\n' > "$SPREAD_PATH/concierge"
+  # Use --project to specify the project root without changing cwd
+  printf '#!/bin/bash\nexec uv run --project /root/proj concierge "$@"\n' > "$SPREAD_PATH/concierge"
   chmod +x "$SPREAD_PATH/concierge"
 
   popd
