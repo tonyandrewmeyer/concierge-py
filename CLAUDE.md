@@ -40,6 +40,7 @@ Installs LXD, K8s (MicroK8s or Canonical K8s), Juju, and development tools.
 - **Async patterns**: Follow asyncio best practices (no blocking I/O in async functions)
 - **Logging**: Use structlog with structured context
 - **Error handling**: Use tenacity for retries, explicit error messages
+- **Comments**: Use full sentences (ending with punctuation) and use comments to explain *why* changes are made, *not* what is being done - usually comments are not needed because the code should be understandable without them
 
 ## Testing
 

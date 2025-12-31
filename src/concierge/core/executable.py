@@ -1,4 +1,8 @@
-"""Executable protocol for prepare/restore operations."""
+"""Executable protocol for prepare/restore operations.
+
+This module defines the Executable protocol that all handlers and providers
+must implement to support prepare and restore operations.
+"""
 
 from typing import Protocol, runtime_checkable
 

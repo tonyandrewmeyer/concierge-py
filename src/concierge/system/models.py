@@ -1,4 +1,8 @@
-"""Data models for system operations."""
+"""Data models for system operations.
+
+This module provides dataclasses for working with snap packages
+and snap information from the snapd API.
+"""
 
 from dataclasses import dataclass, field
 
