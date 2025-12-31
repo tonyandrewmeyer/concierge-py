@@ -1,5 +1,7 @@
 """Unit tests for system command models."""
 
+from pathlib import Path
+
 import pytest
 
 from concierge.system.command import Command, CommandError
@@ -16,11 +18,12 @@ class TestCommand:
         assert cmd.user == ""
         assert cmd.group == ""
 
-    def test_command_with_args(self) -> None:
+    def test_command_with_args(self, tmp_path: Path) -> None:
         """Test creating a Command with arguments."""
-        cmd = Command(executable="ls", args=["-la", "/tmp"])
+        temp_dir = str(tmp_path)
+        cmd = Command(executable="ls", args=["-la", temp_dir])
         assert cmd.executable == "ls"
-        assert cmd.args == ["-la", "/tmp"]
+        assert cmd.args == ["-la", temp_dir]
 
     def test_command_with_user(self) -> None:
         """Test creating a Command with user."""

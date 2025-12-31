@@ -2,8 +2,6 @@
 
 from unittest.mock import Mock
 
-import pytest
-
 from concierge.config.models import (
     ConciergeConfig,
     GoogleConfig,

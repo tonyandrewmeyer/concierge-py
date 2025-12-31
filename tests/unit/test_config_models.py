@@ -1,8 +1,5 @@
 """Unit tests for configuration models."""
 
-import pytest
-from pydantic import ValidationError
-
 from concierge.config.models import (
     ConciergeConfig,
     ConfigOverrides,

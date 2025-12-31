@@ -227,7 +227,9 @@ class TestPlanInit:
             mock_k8s = Mock()
             mock_k8s.bootstrap.return_value = True
 
-            def create_side_effect(name: str, system: Mock, config: ConciergeConfig) -> Mock | None:
+            def create_side_effect(
+                name: str, _system: Mock, _config: ConciergeConfig
+            ) -> Mock | None:
                 if name == "lxd":
                     return mock_lxd
                 if name == "k8s":
@@ -375,7 +377,9 @@ class TestPlanExecute:
             mock_provider = Mock()
             mock_provider.bootstrap.return_value = True
 
-            def create_side_effect(name: str, system: Mock, config: ConciergeConfig) -> Mock | None:
+            def create_side_effect(
+                name: str, _system: Mock, _config: ConciergeConfig
+            ) -> Mock | None:
                 if name == "lxd":
                     return mock_provider
                 return None
