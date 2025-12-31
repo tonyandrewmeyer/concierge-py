@@ -29,9 +29,14 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          cache: false
+
       - name: Install spread
         run: |
-          sudo snap install spread --classic
+          go install github.com/snapcore/spread/cmd/spread@latest
 
       - name: Generate matrix list
         id: suites
@@ -70,9 +75,14 @@ jobs:
           uv venv
           uv pip install -e ".[dev]"
 
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          cache: false
+
       - name: Install spread
         run: |
-          sudo snap install spread --classic
+          go install github.com/snapcore/spread/cmd/spread@latest
 
       - name: Run integration tests
         env:
