@@ -90,4 +90,6 @@ jobs:
         env:
           SUITE: ${{ matrix.suite }}
         run: |
+          sudo apt-get remove -y docker-ce docker-ce-cli containerd.io || true
+          sudo rm -rf /run/containerd || true
           $HOME/go/bin/spread -v "github-ci:ubuntu-24.04:tests/${SUITE}"
