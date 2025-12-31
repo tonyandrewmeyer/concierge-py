@@ -18,7 +18,7 @@
     "deny": [
     ],
     "additionalDirectories": ["../concierge"],
-    "defaultMode": "acceptEdits",
+    "defaultMode": "acceptEdits"
   },
   "hooks": {
     "PostToolUse": [
@@ -27,7 +27,11 @@
         "hooks": [
           {
             "type": "command",
-            "command": "uv run ruff format --fix"
+            "command": "uv run ruff format"
+          },
+          {
+            "type": "command",
+            "command": "uv run ruff check --fix"
           }
         ]
       }

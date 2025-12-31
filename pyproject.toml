@@ -61,3 +61,13 @@ ignore = [
     "TRY400",    # Allow logging.error instead of logging.exception
     "TRY002",    # Allow raising Exception instead of custom exceptions
 ]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101"]  # Allow assert usage in tests
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-asyncio>=1.3.0",
+    "pytest-cov>=7.0.0",
+]

@@ -20,12 +20,14 @@ def _merge_dicts[T](base: dict[str, T], override: dict[str, T]) -> dict[str, T]:
 
 
 # Default configurations used across presets
-DEFAULT_JUJU_CONFIG = JujuConfig(
-    disable=False,
-    model_defaults={
-        "test-mode": "true",
-        "automatically-retry-hooks": "false",
-    },
+DEFAULT_JUJU_CONFIG = JujuConfig.model_validate(
+    {
+        "disable": False,
+        "model-defaults": {
+            "test-mode": "true",
+            "automatically-retry-hooks": "false",
+        },
+    }
 )
 
 DEFAULT_PACKAGES = [
@@ -55,18 +57,20 @@ DEFAULT_MICROK8S_CONFIG = MicroK8sConfig(
     ],
 )
 
-DEFAULT_K8S_CONFIG = K8sConfig(
-    enable=True,
-    bootstrap=True,
-    bootstrap_constraints={"root-disk": "2G"},
-    features={
-        "load-balancer": {
-            "l2-mode": "true",
-            "cidrs": "10.43.45.0/28",
+DEFAULT_K8S_CONFIG = K8sConfig.model_validate(
+    {
+        "enable": True,
+        "bootstrap": True,
+        "bootstrap-constraints": {"root-disk": "2G"},
+        "features": {
+            "load-balancer": {
+                "l2-mode": "true",
+                "cidrs": "10.43.45.0/28",
+            },
+            "local-storage": {},
+            "network": {},
         },
-        "local-storage": {},
-        "network": {},
-    },
+    }
 )
 
 
