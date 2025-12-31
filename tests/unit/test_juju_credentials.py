@@ -2,8 +2,6 @@
 
 from unittest.mock import Mock
 
-import pytest
-
 from concierge.juju.credentials import build_credentials_yaml
 
 

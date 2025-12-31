@@ -57,9 +57,7 @@ class TestCreateProvider:
 
     def test_create_microk8s_enabled(self) -> None:
         """Test creating MicroK8s provider when enabled."""
-        config = ConciergeConfig(
-            providers=ProviderConfig(microk8s=MicroK8sConfig(enable=True))
-        )
+        config = ConciergeConfig(providers=ProviderConfig(microk8s=MicroK8sConfig(enable=True)))
         system = Mock()
 
         provider = create_provider("microk8s", system, config)
@@ -68,9 +66,7 @@ class TestCreateProvider:
 
     def test_create_microk8s_disabled(self) -> None:
         """Test that MicroK8s provider returns None when disabled."""
-        config = ConciergeConfig(
-            providers=ProviderConfig(microk8s=MicroK8sConfig(enable=False))
-        )
+        config = ConciergeConfig(providers=ProviderConfig(microk8s=MicroK8sConfig(enable=False)))
         system = Mock()
 
         provider = create_provider("microk8s", system, config)
@@ -95,9 +91,7 @@ class TestCreateProvider:
 
     def test_create_google_enabled(self) -> None:
         """Test creating Google provider when enabled."""
-        config = ConciergeConfig(
-            providers=ProviderConfig(google=GoogleConfig(enable=True))
-        )
+        config = ConciergeConfig(providers=ProviderConfig(google=GoogleConfig(enable=True)))
         system = Mock()
 
         provider = create_provider("google", system, config)
@@ -106,9 +100,7 @@ class TestCreateProvider:
 
     def test_create_google_disabled(self) -> None:
         """Test that Google provider returns None when disabled."""
-        config = ConciergeConfig(
-            providers=ProviderConfig(google=GoogleConfig(enable=False))
-        )
+        config = ConciergeConfig(providers=ProviderConfig(google=GoogleConfig(enable=False)))
         system = Mock()
 
         provider = create_provider("google", system, config)

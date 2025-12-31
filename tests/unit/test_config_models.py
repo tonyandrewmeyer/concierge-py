@@ -99,9 +99,7 @@ class TestJujuConfig:
     def test_populate_by_name(self) -> None:
         """Test that populate_by_name allows both names."""
         # Using underscored name should also work
-        config = JujuConfig(
-            model_defaults={"test": "value"}, bootstrap_constraints={"cpu": "2"}
-        )
+        config = JujuConfig(model_defaults={"test": "value"}, bootstrap_constraints={"cpu": "2"})
         assert config.model_defaults == {"test": "value"}
         assert config.bootstrap_constraints == {"cpu": "2"}
 
@@ -165,9 +163,7 @@ class TestMicroK8sConfig:
 
     def test_with_addons(self) -> None:
         """Test creating MicroK8sConfig with addons."""
-        config = MicroK8sConfig(
-            enable=True, bootstrap=True, addons=["dns", "storage", "rbac"]
-        )
+        config = MicroK8sConfig(enable=True, bootstrap=True, addons=["dns", "storage", "rbac"])
         assert config.enable is True
         assert config.bootstrap is True
         assert config.addons == ["dns", "storage", "rbac"]

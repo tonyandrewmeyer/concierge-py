@@ -10,11 +10,9 @@ class MockExecutableValid:
 
     async def prepare(self) -> None:
         """Prepare implementation."""
-        pass
 
     async def restore(self) -> None:
         """Restore implementation."""
-        pass
 
 
 class MockExecutableInvalid:
@@ -22,7 +20,6 @@ class MockExecutableInvalid:
 
     async def prepare(self) -> None:
         """Only has prepare."""
-        pass
 
 
 class TestExecutableProtocol:

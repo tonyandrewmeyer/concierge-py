@@ -1,7 +1,5 @@
 """Unit tests for system models."""
 
-import pytest
-
 from concierge.system.models import Snap, SnapInfo
 
 

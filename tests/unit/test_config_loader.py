@@ -166,9 +166,7 @@ class TestApplyOverrides:
 
     def test_extra_snaps_does_not_override_existing(self) -> None:
         """Test that extra_snaps doesn't override existing snaps."""
-        config = ConciergeConfig(
-            host={"snaps": {"snap1": SnapConfig(channel="latest/stable")}}
-        )
+        config = ConciergeConfig(host={"snaps": {"snap1": SnapConfig(channel="latest/stable")}})
         overrides = ConfigOverrides(extra_snaps=["snap1", "snap2"])
         _apply_overrides(config, overrides)
         # snap1 should keep its original channel
@@ -212,9 +210,7 @@ class TestApplyOverrides:
 
     def test_empty_overrides_does_nothing(self) -> None:
         """Test that empty overrides don't modify config."""
-        config = ConciergeConfig(
-            juju={"channel": "3.5/stable"}, host={"packages": ["git"]}
-        )
+        config = ConciergeConfig(juju={"channel": "3.5/stable"}, host={"packages": ["git"]})
         original_juju_channel = config.juju.channel
         original_packages = config.host.packages.copy()
 
@@ -340,7 +336,9 @@ class TestLoadConfig:
         assert config.juju.disable is True
         assert config.host.packages == ["git"]
 
-    def test_load_from_default_location(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_load_from_default_location(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test loading configuration from default concierge.yaml location."""
         monkeypatch.chdir(tmp_path)
         config_file = tmp_path / "concierge.yaml"
@@ -350,7 +348,9 @@ class TestLoadConfig:
         config = load_config()
         assert config.juju.channel == "3.5/stable"
 
-    def test_load_uses_dev_preset_when_no_file(self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_load_uses_dev_preset_when_no_file(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
         """Test that dev preset is used when no config file exists."""
         monkeypatch.chdir(tmp_path)
         config = load_config()

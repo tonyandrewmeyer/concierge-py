@@ -1,6 +1,6 @@
 """Unit tests for core plan module."""
 
-from unittest.mock import AsyncMock, MagicMock, Mock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
@@ -15,7 +15,6 @@ from concierge.config.models import (
     SnapConfig,
 )
 from concierge.core.plan import Plan, _get_snap_channel_override, do_action
-from concierge.system.models import Snap
 
 
 class MockExecutable:
@@ -231,7 +230,7 @@ class TestPlanInit:
             def create_side_effect(name: str, system: Mock, config: ConciergeConfig) -> Mock | None:
                 if name == "lxd":
                     return mock_lxd
-                elif name == "k8s":
+                if name == "k8s":
                     return mock_k8s
                 return None
 
@@ -292,9 +291,7 @@ class TestPlanExecute:
             assert any(
                 call[0][0] == mock_snap_handler and call[0][1] == "prepare" for call in calls
             )
-            assert any(
-                call[0][0] == mock_deb_handler and call[0][1] == "prepare" for call in calls
-            )
+            assert any(call[0][0] == mock_deb_handler and call[0][1] == "prepare" for call in calls)
 
     @pytest.mark.asyncio
     async def test_execute_restore(self) -> None:
