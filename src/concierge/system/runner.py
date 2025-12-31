@@ -128,6 +128,7 @@ class System:
         # Create subprocess
         process = await asyncio.create_subprocess_shell(
             command_string,
+            stdin=asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
             executable=self._shell,
