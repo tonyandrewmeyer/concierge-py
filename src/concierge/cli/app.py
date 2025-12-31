@@ -131,8 +131,9 @@ def prepare(
         snapcraft_channel=snapcraft_channel or env_overrides.snapcraft_channel,
         rockcraft_channel=rockcraft_channel or env_overrides.rockcraft_channel,
         google_credential_file=google_credential_file or env_overrides.google_credential_file,
-        extra_snaps=extra_snaps or env_overrides.extra_snaps,
-        extra_debs=extra_debs or env_overrides.extra_debs,
+        # Merge CLI and env extra snaps/debs (CLI doesn't replace env, they combine)
+        extra_snaps=extra_snaps + env_overrides.extra_snaps,
+        extra_debs=extra_debs + env_overrides.extra_debs,
     )
 
     try:
