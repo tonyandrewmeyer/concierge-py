@@ -79,6 +79,10 @@ def _load_from_file(path: Path) -> ConciergeConfig:
         with path.open("r") as f:
             data = yaml.safe_load(f)
 
+        # Treat empty files as empty configuration
+        if data is None:
+            data = {}
+
         if not isinstance(data, dict):
             raise ValueError("Configuration file must contain a YAML mapping")
 

@@ -101,6 +101,29 @@ class K8sConfig(BaseModel):
         default_factory=dict, alias="bootstrap-constraints"
     )
 
+    @field_validator("features", mode="before")
+    @classmethod
+    def normalize_features(cls, v: Any) -> dict[str, dict[str, str]]:
+        """Normalize features dict to handle None values and convert bools to strings."""
+        if not isinstance(v, dict):
+            return v
+
+        normalized: dict[str, dict[str, str]] = {}
+        for feature_name, feature_config in v.items():
+            # Convert None to empty dict
+            if feature_config is None:
+                normalized[feature_name] = {}
+            elif isinstance(feature_config, dict):
+                # Convert boolean values to strings
+                normalized[feature_name] = {
+                    k: str(val).lower() if isinstance(val, bool) else val
+                    for k, val in feature_config.items()
+                }
+            else:
+                normalized[feature_name] = feature_config
+
+        return normalized
+
 
 class ProviderConfig(BaseModel):
     """Configuration for all providers."""
