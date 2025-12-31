@@ -99,6 +99,17 @@ def prepare(
     if extra_snaps is None:
         extra_snaps = []
 
+    # Split comma-separated values (like Go's StringSlice)
+    def split_comma_list(items: list[str]) -> list[str]:
+        result = []
+        for item in items:
+            # Split on comma and strip whitespace
+            result.extend([s.strip() for s in item.split(",") if s.strip()])
+        return result
+
+    extra_snaps = split_comma_list(extra_snaps)
+    extra_debs = split_comma_list(extra_debs)
+
     # Validate preset if provided
     if preset:
         available = get_available_presets()
