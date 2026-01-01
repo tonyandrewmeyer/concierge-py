@@ -1036,8 +1036,6 @@
       162  class ConciergeConfig(BaseModel):
       163      """Main configuration for Concierge."""
       164  
-  ⎿  Running PostToolUse hooks… (1/2 done)
-  ⎿  PostToolUse:Edit hook error
 
 ● Bash(git add src/concierge/config/models.py && git commit -m "fix: normalize
       snap config to handle None values…)
@@ -1161,8 +1159,6 @@
       12  
       13  logger = get_logger(__name__)
       14  
-  ⎿  Running PostToolUse hooks… (1/2 done)
-  ⎿  PostToolUse:Edit hook error
 
 ● Read(src/concierge/config/loader.py)
   ⎿  Read 10 lines
@@ -1178,8 +1174,6 @@
       143              # Parse snap specification (e.g., "jq/latest/edge"
             -> name="jq", channel="latest/edge")
       144              snap = Snap.from_string(snap_str)
-  ⎿  Running PostToolUse hooks… (1/2 done)
-  ⎿  PostToolUse:Edit hook error
 
 ● Bash(uv run ruff check src/ tests/)
   ⎿  Error: Exit code 1
@@ -1209,7 +1203,6 @@
       12  
       13  logger = get_logger(__name__)
       14  
-  ⎿  Running PostToolUse hooks… (1/2 done)
 
 ● Bash(uv run ruff check src/ tests/)
   ⎿  All checks passed!
@@ -1274,6 +1267,95 @@
   - The type errors existed before these changes and don't block the spread test fixes
 
   Would you like me to push the import fix commit?
+
+> /export 
+  ⎿  Conversation exported to: .claude/logs/2026-01-02-this-session-is-being-continued-from-a-previous-co.txt
+
+> it seems like the unit tests are failing. 
+
+● Bash(uv run pytest tests/unit/ -v) timeout: 1m 0s
+  ⎿  Error: Exit code 1
+        Building charm-concierge @ file:///home/tameyer/code/concierge-py
+           Built charm-concierge @ file:///home/tameyer/code/concierge-py
+     Uninstalled 1 package in 0.74ms
+     Installed 1 package in 1ms
+
+     ============================= test session starts 
+     ==============================
+     platform linux -- Python 3.14.0, pytest-9.0.2, pluggy-1.6.0 -- 
+     /home/tameyer/code/concierge-py/.venv/bin/python3
+     cachedir: .pytest_cache
+     rootdir: /home/tameyer/code/concierge-py
+     … +117 lines (ctrl+o to see all)
+
+● Read(tests/unit/test_config_loader.py)
+  ⎿  Read 15 lines
+
+● Update(tests/unit/test_config_loader.py)
+  ⎿  Added 5 lines, removed 3 lines                                      
+      59              _load_from_file(config_file)
+      60  
+      61      def test_load_empty_file(self, tmp_path: Path) -> None:
+      62 -        """Test loading an empty YAML file."""                 
+      62 +        """Test loading an empty YAML file (treated as empty co
+         +nfig)."""                                                      
+      63          config_file = tmp_path / "empty.yaml"
+      64          config_file.write_text("")
+      65  
+      66 -        with pytest.raises(ValueError, match="must contain a YA
+         -ML mapping"):                                                  
+      67 -            _load_from_file(config_file)                       
+      66 +        # Empty files are now treated as empty configs with def
+         +aults                                                          
+      67 +        config = _load_from_file(config_file)                  
+      68 +        assert config is not None                              
+      69 +        assert isinstance(config, ConciergeConfig)             
+      70  
+      71      def test_load_minimal_config(self, tmp_path: Path) -> None:
+      72          """Test loading a minimal valid configuration."""
+
+● Bash(uv run pytest
+      tests/unit/test_config_loader.py::TestLoadFromFile::test_load_empty_file
+      -v)
+  ⎿ ============================= test session starts =====================
+    =========
+    platform linux -- Python 3.14.0, pytest-9.0.2, pluggy-1.6.0 -- /home/ta
+    … +14 lines (ctrl+o to expand)
+
+
+
+● Bash(uv run pytest tests/unit/ -v --tb=short 2>&1 | tail -20)
+  ⎿ tests/unit/test_system_command.py::TestCommandError::test_command_error
+    _with_empty_output PASSED [ 91%]
+    tests/unit/test_system_command.py::TestCommandError::test_command_error
+    … +36 lines (ctrl+o to expand)
+
+
+
+● Bash(git add tests/unit/test_config_loader.py && git commit -m "fix: update
+      test to reflect empty file behavior change…)
+  ⎿ [fix-spread-tests e4a3be1] fix: update test to reflect empty file behav
+    ior change
+     1 file changed, 5 insertions(+), 3 deletions(-)
+
+
+● Perfect! Fixed the unit test failure. The issue was that test_load_empty_file expected empty files to raise an error, but we changed the behavior in commit d8ae0b3 to allow empty files (to support spread tests that use touch concierge.yaml).
+
+  Changes:
+  1. Commit e0f2440: Moved Snap import to top-level (fixed ruff check)
+  2. Commit e4a3be1: Updated test to reflect empty file behavior change
+
+  Test Results:
+  ✅ All 198 unit tests now pass
+
+  Summary of all checks:
+  - ✅ ruff format --check: Passed
+  - ✅ ruff check: Passed
+  - ✅ Unit tests: 198/198 passing
+  - ⚠️ ty check: 14 pre-existing errors (not caused by these changes)
+  - ✅ Spread tests: 24/24 passing
+
+  Would you like me to push these two commits (e0f2440 and e4a3be1)?
 
 
 
