@@ -8,6 +8,7 @@ import yaml
 from concierge.config.models import ConciergeConfig, ConfigOverrides, SnapConfig
 from concierge.config.presets import get_preset
 from concierge.core.logging import get_logger
+from concierge.system.models import Snap
 
 logger = get_logger(__name__)
 
@@ -139,8 +140,6 @@ def _apply_overrides(config: ConciergeConfig, overrides: ConfigOverrides) -> Non
 
     # Extra snaps
     if overrides.extra_snaps:
-        from concierge.system.models import Snap
-
         for snap_str in overrides.extra_snaps:
             # Parse snap specification (e.g., "jq/latest/edge" -> name="jq", channel="latest/edge")
             snap = Snap.from_string(snap_str)
