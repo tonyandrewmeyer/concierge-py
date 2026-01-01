@@ -148,6 +148,18 @@ class HostConfig(BaseModel):
     packages: list[str] = Field(default_factory=list)
     snaps: dict[str, SnapConfig] = Field(default_factory=dict)
 
+    @field_validator("snaps", mode="before")
+    @classmethod
+    def normalize_snaps(cls, v: Any) -> dict[str, Any]:
+        """Normalize snaps dict to handle None values."""
+        if not isinstance(v, dict):
+            return v
+
+        # Convert None values to empty dicts (will become SnapConfig with defaults)
+        return {
+            name: snap_config if snap_config is not None else {} for name, snap_config in v.items()
+        }
+
 
 class ConciergeConfig(BaseModel):
     """Main configuration for Concierge."""
