@@ -1,8 +1,9 @@
 """Configuration models for Concierge using Pydantic."""
 
 from enum import Enum
+from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class Status(str, Enum):
@@ -101,6 +102,29 @@ class K8sConfig(BaseModel):
         default_factory=dict, alias="bootstrap-constraints"
     )
 
+    @field_validator("features", mode="before")
+    @classmethod
+    def normalize_features(cls, v: Any) -> dict[str, dict[str, str]]:
+        """Normalize features dict to handle None values and convert bools to strings."""
+        if not isinstance(v, dict):
+            return v
+
+        normalized: dict[str, dict[str, str]] = {}
+        for feature_name, feature_config in v.items():
+            # Convert None to empty dict
+            if feature_config is None:
+                normalized[feature_name] = {}
+            elif isinstance(feature_config, dict):
+                # Convert boolean values to strings
+                normalized[feature_name] = {
+                    k: str(val).lower() if isinstance(val, bool) else val
+                    for k, val in feature_config.items()
+                }
+            else:
+                normalized[feature_name] = feature_config
+
+        return normalized
+
 
 class ProviderConfig(BaseModel):
     """Configuration for all providers."""
@@ -123,6 +147,18 @@ class HostConfig(BaseModel):
 
     packages: list[str] = Field(default_factory=list)
     snaps: dict[str, SnapConfig] = Field(default_factory=dict)
+
+    @field_validator("snaps", mode="before")
+    @classmethod
+    def normalize_snaps(cls, v: Any) -> dict[str, Any]:
+        """Normalize snaps dict to handle None values."""
+        if not isinstance(v, dict):
+            return v
+
+        # Convert None values to empty dicts (will become SnapConfig with defaults)
+        return {
+            name: snap_config if snap_config is not None else {} for name, snap_config in v.items()
+        }
 
 
 class ConciergeConfig(BaseModel):
