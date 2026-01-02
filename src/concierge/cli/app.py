@@ -25,9 +25,12 @@ app = typer.Typer(
 @app.callback()
 def main(
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Enable debug logging")] = False,
+    trace: Annotated[
+        bool, typer.Option("--trace", help="Enable trace logging (most verbose)")
+    ] = False,
 ) -> None:
     """Concierge - Charm development environment provisioning."""
-    setup_logging(verbose=verbose)
+    setup_logging(verbose=verbose, trace=trace)
 
 
 @app.command()
@@ -96,6 +99,17 @@ def prepare(
     if extra_snaps is None:
         extra_snaps = []
 
+    # Split comma-separated values (like Go's StringSlice)
+    def split_comma_list(items: list[str]) -> list[str]:
+        result = []
+        for item in items:
+            # Split on comma and strip whitespace
+            result.extend([s.strip() for s in item.split(",") if s.strip()])
+        return result
+
+    extra_snaps = split_comma_list(extra_snaps)
+    extra_debs = split_comma_list(extra_debs)
+
     # Validate preset if provided
     if preset:
         available = get_available_presets()
@@ -117,8 +131,9 @@ def prepare(
         snapcraft_channel=snapcraft_channel or env_overrides.snapcraft_channel,
         rockcraft_channel=rockcraft_channel or env_overrides.rockcraft_channel,
         google_credential_file=google_credential_file or env_overrides.google_credential_file,
-        extra_snaps=extra_snaps or env_overrides.extra_snaps,
-        extra_debs=extra_debs or env_overrides.extra_debs,
+        # Merge CLI and env extra snaps/debs (CLI doesn't replace env, they combine)
+        extra_snaps=extra_snaps + env_overrides.extra_snaps,
+        extra_debs=extra_debs + env_overrides.extra_debs,
     )
 
     try:

@@ -112,7 +112,8 @@ class SnapdClient:
 
         except Exception as e:
             # If snap is not installed, the API returns an error
-            if "snap not installed" in str(e).lower():
+            error_msg = str(e).lower()
+            if "snap not installed" in error_msg or "not found" in error_msg:
                 return False, ""
             # For other errors, re-raise
             raise

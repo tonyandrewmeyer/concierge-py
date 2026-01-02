@@ -59,12 +59,14 @@ class TestLoadFromFile:
             _load_from_file(config_file)
 
     def test_load_empty_file(self, tmp_path: Path) -> None:
-        """Test loading an empty YAML file."""
+        """Test loading an empty YAML file (treated as empty config)."""
         config_file = tmp_path / "empty.yaml"
         config_file.write_text("")
 
-        with pytest.raises(ValueError, match="must contain a YAML mapping"):
-            _load_from_file(config_file)
+        # Empty files are now treated as empty configs with defaults
+        config = _load_from_file(config_file)
+        assert config is not None
+        assert isinstance(config, ConciergeConfig)
 
     def test_load_minimal_config(self, tmp_path: Path) -> None:
         """Test loading a minimal valid configuration."""

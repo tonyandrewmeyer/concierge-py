@@ -9,6 +9,7 @@ from pathlib import Path
 from tenacity import (
     AsyncRetrying,
     RetryError,
+    retry_if_exception_type,
     stop_after_delay,
     wait_exponential,
 )
@@ -128,6 +129,7 @@ class System:
         # Create subprocess
         process = await asyncio.create_subprocess_shell(
             command_string,
+            stdin=asyncio.subprocess.DEVNULL,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
             executable=self._shell,
@@ -187,21 +189,27 @@ class System:
             CommandError: If all retries fail
         """
         max_duration_sec = max_duration_ms / 1000.0
+        # Use 90% of max duration for each attempt to leave room for retries.
+        per_attempt_timeout = max_duration_sec * 0.9
 
         try:
             async for attempt in AsyncRetrying(
                 wait=wait_exponential(multiplier=1, min=1, max=60),
                 stop=stop_after_delay(max_duration_sec),
                 reraise=True,
+                retry=retry_if_exception_type((CommandError, asyncio.TimeoutError)),
             ):
                 with attempt:
-                    return await self.run(cmd)
+                    return await asyncio.wait_for(self.run(cmd), timeout=per_attempt_timeout)
         except RetryError as e:
             # Re-raise the original exception
             exc = e.last_attempt.exception()
             if exc is not None:
                 raise exc from e
             raise
+        except TimeoutError as e:
+            # Convert timeout to CommandError for consistency.
+            raise CommandError(cmd.command_string, -1, "Command timed out") from e
 
         # This should never be reached due to reraise=True
         raise RuntimeError("Unexpected retry error")

@@ -8,6 +8,7 @@ import yaml
 from concierge.config.models import ConciergeConfig, ConfigOverrides, SnapConfig
 from concierge.config.presets import get_preset
 from concierge.core.logging import get_logger
+from concierge.system.models import Snap
 
 logger = get_logger(__name__)
 
@@ -79,6 +80,10 @@ def _load_from_file(path: Path) -> ConciergeConfig:
         with path.open("r") as f:
             data = yaml.safe_load(f)
 
+        # Treat empty files as empty configuration
+        if data is None:
+            data = {}
+
         if not isinstance(data, dict):
             raise ValueError("Configuration file must contain a YAML mapping")
 
@@ -135,9 +140,14 @@ def _apply_overrides(config: ConciergeConfig, overrides: ConfigOverrides) -> Non
 
     # Extra snaps
     if overrides.extra_snaps:
-        for snap_name in overrides.extra_snaps:
-            if snap_name not in config.host.snaps:
-                config.host.snaps[snap_name] = SnapConfig()
+        for snap_str in overrides.extra_snaps:
+            # Parse snap specification (e.g., "jq/latest/edge" -> name="jq", channel="latest/edge")
+            snap = Snap.from_string(snap_str)
+            if snap.name not in config.host.snaps:
+                config.host.snaps[snap.name] = SnapConfig(channel=snap.channel)
+            elif snap.channel:
+                # Update channel if specified (overrides preset/config channel)
+                config.host.snaps[snap.name].channel = snap.channel
 
     # Extra debs
     if overrides.extra_debs:

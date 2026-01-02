@@ -1,0 +1,95 @@
+name: Spread
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+    tags:
+      - "!**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  define-matrix:
+    name: Define spread matrix
+    runs-on: ubuntu-24.04
+    outputs:
+      suites: ${{ steps.suites.outputs.suites }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          cache: false
+
+      - name: Install spread
+        run: |
+          go install github.com/snapcore/spread/cmd/spread@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+
+      - name: Generate matrix list
+        id: suites
+        run: |
+          list="$($HOME/go/bin/spread -list github-ci | sed "s|github-ci:ubuntu-24.04:tests/||g" | jq -r -ncR '[inputs | select(length>0)]')"
+          echo "suites=$list"
+          echo "suites=$list" >> $GITHUB_OUTPUT
+
+  spread-test:
+    name: Spread (${{ matrix.suite }})
+    runs-on: ubuntu-24.04
+    needs:
+      - define-matrix
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: ${{ fromJSON(needs.define-matrix.outputs.suites) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@85856786d1ce8acfbcc2f13a5f3fbd6b938f9f41  # v7.1.2
+        with:
+          enable-cache: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install dependencies
+        run: |
+          uv venv
+          uv pip install -e ".[dev]"
+
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          cache: false
+
+      - name: Install spread
+        run: |
+          go install github.com/snapcore/spread/cmd/spread@latest
+          echo "$HOME/go/bin" >> $GITHUB_PATH
+
+      - name: Run integration tests
+        env:
+          SUITE: ${{ matrix.suite }}
+        run: |
+          sudo apt-get remove -y docker-ce docker-ce-cli containerd.io || true
+          sudo rm -rf /run/containerd || true
+          $HOME/go/bin/spread -v "github-ci:ubuntu-24.04:tests/${SUITE}"

@@ -44,66 +44,93 @@ class TestCommand:
     def test_full_command_simple(self) -> None:
         """Test full_command property for simple command."""
         cmd = Command(executable="ls", args=["-l"])
-        assert cmd.full_command == ["ls", "-l"]
+        # Command should resolve the full path to ls and include args.
+        assert "ls" in cmd.full_command[0]
+        assert cmd.full_command[-1] == "-l"
 
     def test_full_command_with_user(self) -> None:
         """Test full_command property with user (adds sudo)."""
         cmd = Command(executable="ls", args=["-l"], user="testuser")
-        assert cmd.full_command == ["sudo", "-u", "testuser", "ls", "-l"]
+        # Should have sudo, -u, testuser, then the path to ls, then args.
+        assert cmd.full_command[0] == "sudo"
+        assert cmd.full_command[1:3] == ["-u", "testuser"]
+        assert "ls" in cmd.full_command[3]
+        assert cmd.full_command[-1] == "-l"
 
     def test_full_command_with_group(self) -> None:
         """Test full_command property with group (adds sudo)."""
         cmd = Command(executable="ls", args=["-l"], group="testgroup")
-        assert cmd.full_command == ["sudo", "-g", "testgroup", "ls", "-l"]
+        # Should have sudo, -g, testgroup, then the path to ls, then args.
+        assert cmd.full_command[0] == "sudo"
+        assert cmd.full_command[1:3] == ["-g", "testgroup"]
+        assert "ls" in cmd.full_command[3]
+        assert cmd.full_command[-1] == "-l"
 
     def test_full_command_with_user_and_group(self) -> None:
         """Test full_command property with both user and group."""
         cmd = Command(executable="ls", args=["-l"], user="testuser", group="testgroup")
-        assert cmd.full_command == ["sudo", "-u", "testuser", "-g", "testgroup", "ls", "-l"]
+        # Should have sudo, -u, testuser, -g, testgroup, then the path to ls, then args.
+        assert cmd.full_command[0] == "sudo"
+        assert cmd.full_command[1:5] == ["-u", "testuser", "-g", "testgroup"]
+        assert "ls" in cmd.full_command[5]
+        assert cmd.full_command[-1] == "-l"
 
     def test_full_command_root_user_no_sudo(self) -> None:
         """Test that root user doesn't add sudo prefix."""
         cmd = Command(executable="ls", args=["-l"], user="root")
-        # When user is root, should not add sudo
-        assert cmd.full_command == ["ls", "-l"]
+        # When user is root, should not add sudo.
+        assert cmd.full_command[0] != "sudo"
+        assert "ls" in cmd.full_command[0]
+        assert cmd.full_command[-1] == "-l"
 
     def test_full_command_no_args(self) -> None:
         """Test full_command with no arguments."""
         cmd = Command(executable="pwd")
-        assert cmd.full_command == ["pwd"]
+        assert len(cmd.full_command) == 1
+        assert "pwd" in cmd.full_command[0]
 
     def test_full_command_multiple_args(self) -> None:
         """Test full_command with multiple arguments."""
         cmd = Command(executable="git", args=["commit", "-m", "test message", "--author=me"])
-        assert cmd.full_command == ["git", "commit", "-m", "test message", "--author=me"]
+        assert "git" in cmd.full_command[0]
+        assert cmd.full_command[-4:] == ["commit", "-m", "test message", "--author=me"]
 
     def test_command_string_simple(self) -> None:
         """Test command_string property for simple command."""
         cmd = Command(executable="ls", args=["-l"])
-        assert cmd.command_string == "ls -l"
+        # Should end with the args, and contain ls somewhere.
+        assert cmd.command_string.endswith(" -l")
+        assert "ls" in cmd.command_string
 
     def test_command_string_with_spaces(self) -> None:
         """Test command_string properly escapes arguments with spaces."""
         cmd = Command(executable="echo", args=["hello world"])
-        assert cmd.command_string == "echo 'hello world'"
+        # Should contain echo and properly quoted argument.
+        assert "echo" in cmd.command_string
+        assert "'hello world'" in cmd.command_string
 
     def test_command_string_with_quotes(self) -> None:
         """Test command_string properly escapes arguments with quotes."""
         cmd = Command(executable="echo", args=["it's working"])
-        # shlex.join should properly escape the apostrophe - just verify command starts with echo
-        assert cmd.command_string.startswith("echo")
+        # Should contain echo and properly escaped argument.
+        assert "echo" in cmd.command_string
         # Verify the result is a valid shell command string
         assert len(cmd.command_string) > len("echo")
 
     def test_command_string_with_sudo(self) -> None:
         """Test command_string includes sudo when user is set."""
         cmd = Command(executable="ls", args=["-l"], user="testuser")
-        assert cmd.command_string == "sudo -u testuser ls -l"
+        # Should start with sudo -u testuser.
+        assert cmd.command_string.startswith("sudo -u testuser")
+        assert "ls" in cmd.command_string
+        assert cmd.command_string.endswith(" -l")
 
     def test_command_string_with_sudo_and_group(self) -> None:
         """Test command_string includes sudo with both user and group."""
         cmd = Command(executable="ls", user="testuser", group="testgroup")
-        assert cmd.command_string == "sudo -u testuser -g testgroup ls"
+        # Should start with sudo -u testuser -g testgroup.
+        assert cmd.command_string.startswith("sudo -u testuser -g testgroup")
+        assert "ls" in cmd.command_string
 
     def test_command_string_complex(self) -> None:
         """Test command_string with complex arguments."""
@@ -111,8 +138,9 @@ class TestCommand:
             executable="juju",
             args=["bootstrap", "lxd", "controller", "--config", "test-mode=true"],
         )
-        expected = "juju bootstrap lxd controller --config test-mode=true"
-        assert cmd.command_string == expected
+        # Should contain juju and all the args.
+        assert "juju" in cmd.command_string
+        assert "bootstrap lxd controller --config test-mode=true" in cmd.command_string
 
     def test_command_equality(self) -> None:
         """Test that Command dataclasses can be compared for equality."""

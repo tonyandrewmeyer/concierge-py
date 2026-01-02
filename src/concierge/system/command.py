@@ -2,6 +2,7 @@
 
 import shlex
 from dataclasses import dataclass, field
+from shutil import which
 
 
 @dataclass
@@ -27,6 +28,11 @@ class Command:
         Returns:
             List of command components
         """
+        # Resolve executable path (similar to Go's exec.LookPath).
+        executable_path = which(self.executable)
+        if executable_path is None:
+            executable_path = self.executable
+
         cmd: list[str] = []
 
         # Add sudo prefix if user or group is specified
@@ -39,7 +45,7 @@ class Command:
             if self.group:
                 cmd.extend(["-g", self.group])
 
-        cmd.append(self.executable)
+        cmd.append(executable_path)
         cmd.extend(self.args)
 
         return cmd
