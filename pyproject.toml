@@ -28,6 +28,7 @@ dev = [
 
 [project.scripts]
 concierge = "concierge.cli.app:app"
+charm-concierge = "concierge.cli.app:app"
 
 [build-system]
 requires = ["hatchling"]

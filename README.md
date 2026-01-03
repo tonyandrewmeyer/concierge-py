@@ -28,19 +28,22 @@ removed.
 
 ## Installation
 
-The easiest way to consume `concierge-py` is using [`uv`](https://docs.astral.sh/uv/):
+The package is published to PyPI as `charm-concierge`. The easiest way to use it is with [`uvx`](https://docs.astral.sh/uv/):
 
 ```shell
-sudo uvx concierge-py
+sudo uvx charm-concierge prepare
 ```
 
-Or, you can install concierge with the `uv` install command:
+For repeated use, install it permanently with `uv tool install`:
 
 ```shell
-uv tool install concierge-py
+uv tool install charm-concierge
+sudo concierge prepare
 ```
 
-Or you can clone, build and run like so:
+Note: The PyPI package name is `charm-concierge`, but the command is `concierge` (both `concierge` and `charm-concierge` commands are available).
+
+Alternatively, you can clone and run from source:
 
 ```shell
 git clone https://github.com/tonyandrewmeyer/concierge-py
