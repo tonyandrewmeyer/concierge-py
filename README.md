@@ -7,7 +7,7 @@
   <!--
   <a href="https://snapcraft.io/concierge"><img src="https://snapcraft.io/concierge/badge.svg" alt="Snap Status"></a>
   -->
-  <a href="https://github.com/tonyandrewmeyer/concierge-py/actions/workflows/release.yaml"><img src="https://github.com/tonyandrewmeyer/concierge-py/actions/workflows/release.yaml/badge.svg"></a>
+  <a href="https://github.com/tonyandrewmeyer/concierge-py/actions/workflows/release.yaml"><img src="https://github.com/tonyandrewmeyer/concierge-py/actions/workflows/publish.yaml/badge.svg"></a>
 </p>
 
 [`concierge`](https://github.com/canonical/concierge) is an opinionated utility for provisioning charm development and testing machines. `concierge-py` is a reimplementation (vibespiled) in Python.
