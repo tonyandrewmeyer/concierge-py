@@ -1,6 +1,7 @@
 """Kubernetes (k8s) provider implementation."""
 
 import asyncio
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -76,6 +77,9 @@ class K8s:
         # Remove kubeconfig
         await self.system.remove_all_home(Path(".kube"))
 
+        # Restore containerd if we stopped it during prepare
+        await self._restore_containerd()
+
         logger.info("Removed provider", provider=self.name())
 
     def name(self) -> str:
@@ -141,6 +145,9 @@ class K8s:
         Raises:
             Exception: If initialization fails
         """
+        # Handle pre-existing containerd that would conflict with k8s snap
+        await self._handle_existing_containerd()
+
         # Bootstrap if cluster not already created
         if await self._needs_bootstrap():
             cmd = Command(executable="k8s", args=["bootstrap"])
@@ -198,3 +205,59 @@ class K8s:
 
         # Write to .kube/config
         await self.system.write_home_file(Path(".kube/config"), result)
+
+    async def _handle_existing_containerd(self) -> None:
+        """Handle pre-existing containerd installations.
+
+        Canonical K8s recommends installing on a clean machine. However, some
+        environments (e.g., GitHub runners) have an existing containerd service.
+        This stops the service and removes /run/containerd to allow k8s to
+        bootstrap successfully.
+        """
+        # Check if containerd service is active
+        try:
+            cmd = Command(executable="systemctl", args=["is-active", "containerd.service"])
+            output = await self.system.run(cmd)
+            is_active = output.decode().strip() == "active"
+        except CommandError:
+            # Service doesn't exist or other error - nothing to do
+            logger.debug("Containerd service is not active or does not exist")
+            return
+
+        if is_active:
+            logger.debug("Containerd service is active, stopping it")
+            try:
+                cmd = Command(executable="systemctl", args=["stop", "containerd.service"])
+                await self.system.run(cmd)
+                logger.debug("Successfully stopped containerd service")
+            except CommandError as e:
+                logger.warning("Failed to stop containerd service", error=str(e))
+
+        # Remove /run/containerd directory
+        containerd_path = Path("/run/containerd")
+        if containerd_path.exists():
+            logger.debug("Removing /run/containerd directory")
+            try:
+                shutil.rmtree(containerd_path)
+                logger.debug("Successfully removed /run/containerd directory")
+            except OSError as e:
+                logger.warning("Failed to remove /run/containerd directory", error=str(e))
+
+    async def _restore_containerd(self) -> None:
+        """Restore containerd service if it was stopped during prepare."""
+        # Check if containerd service exists
+        try:
+            cmd = Command(executable="systemctl", args=["cat", "containerd.service"])
+            await self.system.run(cmd)
+        except CommandError:
+            # Service doesn't exist - nothing to restore
+            return
+
+        # Restart the service
+        logger.debug("Restarting containerd service")
+        try:
+            cmd = Command(executable="systemctl", args=["start", "containerd.service"])
+            await self.system.run(cmd)
+            logger.debug("Successfully restarted containerd service")
+        except CommandError as e:
+            logger.warning("Failed to restart containerd service", error=str(e))
