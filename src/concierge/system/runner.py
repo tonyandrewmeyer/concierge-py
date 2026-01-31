@@ -344,6 +344,10 @@ class System:
     async def _chown_recursive(self, path: Path) -> None:
         """Change ownership of a path recursively to the real user.
 
+        Uses lchown to avoid dereferencing symlinks, which prevents failures
+        with dangling symlinks and avoids changing ownership of symlink targets
+        that may be outside the intended directory tree.
+
         Args:
             path: Path to change ownership of
         """
@@ -361,16 +365,16 @@ class System:
             logger.warning("Could not find user info", user=sudo_user)
             return
 
-        # Recursively change ownership
+        # Recursively change ownership (using lchown to not follow symlinks)
         for item in path.rglob("*"):
             try:
-                os.chown(item, uid, gid)
+                os.lchown(item, uid, gid)
             except OSError as e:
                 logger.warning("Failed to change ownership", path=str(item), error=str(e))
 
         # Also change the root path itself
         try:
-            os.chown(path, uid, gid)
+            os.lchown(path, uid, gid)
         except OSError as e:
             logger.warning("Failed to change ownership", path=str(path), error=str(e))
 
