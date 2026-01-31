@@ -31,6 +31,7 @@ DEFAULT_JUJU_CONFIG = JujuConfig.model_validate(
 )
 
 DEFAULT_PACKAGES = [
+    "gnome-keyring",
     "python3-pip",
     "python3-venv",
 ]
