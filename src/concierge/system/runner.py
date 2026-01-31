@@ -4,6 +4,7 @@ import asyncio
 import os
 import pwd
 import shutil
+import time
 from pathlib import Path
 
 from tenacity import (
@@ -127,6 +128,7 @@ class System:
         logger.debug("Starting command", command=command_string, **log_ctx)
 
         # Create subprocess
+        start_time = time.monotonic()
         process = await asyncio.create_subprocess_shell(
             command_string,
             stdin=asyncio.subprocess.DEVNULL,
@@ -137,6 +139,7 @@ class System:
 
         # Wait for command to complete
         stdout, _ = await process.communicate()
+        elapsed = time.monotonic() - start_time
 
         if process.returncode != 0:
             output_str = stdout.decode("utf-8", errors="replace")
@@ -150,7 +153,7 @@ class System:
             output_str = stdout.decode("utf-8", errors="replace")
             self._print_trace(command_string, output_str)
 
-        logger.debug("Finished command", command=command_string)
+        logger.debug("Finished command", command=command_string, elapsed=f"{elapsed:.2f}s")
 
         return stdout
 
