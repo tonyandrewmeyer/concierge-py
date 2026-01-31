@@ -1,6 +1,7 @@
 """Juju handler for installation and bootstrap."""
 
 import asyncio
+import platform
 import shlex
 from pathlib import Path
 
@@ -48,13 +49,11 @@ def _get_juju_arch() -> str:
     Returns:
         Juju-compatible architecture string (e.g., 'amd64', 'arm64')
     """
-    import platform
-
     machine = platform.machine()
     arch_map = {
         "x86_64": "amd64",
         "aarch64": "arm64",
-        "ppc64le": "ppc64el",  # Go uses ppc64le, Juju/Debian uses ppc64el
+        "ppc64le": "ppc64el",  # Python uses ppc64le, Juju/Debian uses ppc64el
         "s390x": "s390x",
         "riscv64": "riscv64",
     }
