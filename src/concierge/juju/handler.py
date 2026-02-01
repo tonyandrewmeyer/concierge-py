@@ -1,6 +1,7 @@
 """Juju handler for installation and bootstrap."""
 
 import asyncio
+import platform
 import shlex
 from pathlib import Path
 
@@ -38,6 +39,25 @@ def _merge_dicts[T](base: dict[str, T], override: dict[str, T]) -> dict[str, T]:
     result = base.copy()
     result.update(override)
     return result
+
+
+def _get_juju_arch() -> str:
+    """Get the Juju/Debian architecture name for the current platform.
+
+    Translates Python's platform.machine() values to Juju/Debian architecture names.
+
+    Returns:
+        Juju-compatible architecture string (e.g., 'amd64', 'arm64')
+    """
+    machine = platform.machine()
+    arch_map = {
+        "x86_64": "amd64",
+        "aarch64": "arm64",
+        "ppc64le": "ppc64el",  # Python uses ppc64le, Juju/Debian uses ppc64el
+        "s390x": "s390x",
+        "riscv64": "riscv64",
+    }
+    return arch_map.get(machine, machine)
 
 
 class JujuHandler:
@@ -217,6 +237,16 @@ class JujuHandler:
         cmd = Command(
             executable="juju",
             args=["add-model", "-c", controller_name, "testing"],
+            user=username,
+        )
+        await self.system.run(cmd)
+
+        # Set architecture constraint on the testing model
+        model_name = f"{controller_name}:testing"
+        arch = _get_juju_arch()
+        cmd = Command(
+            executable="juju",
+            args=["set-model-constraints", "-m", model_name, f"arch={arch}"],
             user=username,
         )
         await self.system.run(cmd)
