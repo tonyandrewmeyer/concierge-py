@@ -7,6 +7,7 @@ from pathlib import Path
 import yaml
 from tenacity import (
     AsyncRetrying,
+    RetryCallState,
     RetryError,
     stop_after_attempt,
     wait_exponential,
@@ -245,7 +246,14 @@ class JujuHandler:
         # Don't retry if the controller definitively doesn't exist
         controller_not_found = f"controller {controller_name} not found"
 
-        def should_retry(exception: BaseException) -> bool:
+        def should_retry(retry_state: RetryCallState) -> bool:
+            if retry_state.outcome is None:
+                return True
+
+            exception = retry_state.outcome.exception()
+            if exception is None:
+                return False
+
             if isinstance(exception, CommandError):
                 # Retry transient errors, but not if controller definitively not found
                 return controller_not_found not in exception.output

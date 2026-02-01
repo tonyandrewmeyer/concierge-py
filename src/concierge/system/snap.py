@@ -2,7 +2,7 @@
 
 from collections.abc import Awaitable, Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 import aiohttp
 from tenacity import (
@@ -163,7 +163,7 @@ class SnapdClient:
                 raise ValueError(f"Unexpected response type: {type(result)}")
             return result
 
-        return cast(dict[str, Any], await self._with_retry(_attempt))
+        return await self._with_retry(_attempt)
 
     async def _find_snap(self, snap_name: str) -> dict[str, Any]:
         """Find a snap in the store.
@@ -191,7 +191,7 @@ class SnapdClient:
 
             raise ValueError(f"Snap '{snap_name}' not found in store")
 
-        return cast(dict[str, Any], await self._with_retry(_attempt))
+        return await self._with_retry(_attempt)
 
     async def _request(self, method: str, endpoint: str) -> Any:
         """Make an HTTP request to the snapd API.
