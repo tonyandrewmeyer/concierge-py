@@ -9,16 +9,16 @@ This file tracks synchronization status with [canonical/concierge](https://githu
 
 All changes have been ported. See branches below for PRs.
 
-### Branches Ready for PR
+### Open PRs
 
-| Branch | Go Commit | Description |
-|--------|-----------|-------------|
-| `feat/presets-as-yaml` | `b28b069` | Store presets as YAML rather than Python/Pydantic |
-| `ci/avoid-unnecessary-k8s-microk8s` | `f33c1e8`, `976a441` | Avoid using K8s/MicroK8s as provider unless explicitly testing |
-| `feat/image-registry-config` | `d844183` | Add image registry configuration for K8s and MicroK8s |
-| `feat/dry-run` | `bebf251` | Add --dry-run flag to prepare and restore commands |
-| `refactor/simplify-system-interface` | `1ac1573` | Simplify system interface, replacing methods with helpers |
-| `fix/snap-channel-defaults` | `2145dd1`, `31f4330`, `0c6c5f9` | Snaps with no explicit channel default to latest/stable |
+| PR | Branch | Go Commit | Description |
+|----|--------|-----------|-------------|
+| [#12](https://github.com/tonyandrewmeyer/concierge-py/pull/12) | `feat/presets-as-yaml` | `b28b069` | Store presets as YAML rather than Python/Pydantic |
+| [#13](https://github.com/tonyandrewmeyer/concierge-py/pull/13) | `ci/avoid-unnecessary-k8s-microk8s` | `f33c1e8`, `976a441` | Avoid using K8s/MicroK8s as provider unless explicitly testing |
+| [#14](https://github.com/tonyandrewmeyer/concierge-py/pull/14) | `feat/image-registry-config` | `d844183` | Add image registry configuration for K8s and MicroK8s |
+| [#15](https://github.com/tonyandrewmeyer/concierge-py/pull/15) | `feat/dry-run` | `bebf251` | Add --dry-run flag to prepare and restore commands |
+| [#16](https://github.com/tonyandrewmeyer/concierge-py/pull/16) | `refactor/simplify-system-interface` | `1ac1573` | Simplify system interface, replacing methods with helpers |
+| [#17](https://github.com/tonyandrewmeyer/concierge-py/pull/17) | `fix/snap-channel-defaults` | `2145dd1`, `31f4330`, `0c6c5f9` | Snaps with no explicit channel default to latest/stable |
 
 ### Previously Merged
 
