@@ -91,6 +91,10 @@ def prepare(
         list[str] | None,
         typer.Option("--extra-debs", help="Additional deb packages to install"),
     ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Show what would be done without making changes"),
+    ] = False,
 ) -> None:
     """Provision a charm development environment."""
     # Merge CLI flags and environment overrides
@@ -137,7 +141,7 @@ def prepare(
     )
 
     try:
-        asyncio.run(run_prepare(config, preset, cli_overrides))
+        asyncio.run(run_prepare(config, preset, cli_overrides, dry_run=dry_run))
     except CommandError as e:
         # Check for permission-related errors
         if os.geteuid() != 0 and (
@@ -168,6 +172,10 @@ def restore(
             help="Configuration preset (dev, machine, k8s, microk8s, crafts)",
         ),
     ] = "",
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Show what would be done without making changes"),
+    ] = False,
 ) -> None:
     """Restore the system to its pre-Concierge state."""
     # Validate preset if provided
@@ -181,7 +189,7 @@ def restore(
             raise typer.Exit(code=1)
 
     try:
-        asyncio.run(run_restore(config, preset))
+        asyncio.run(run_restore(config, preset, dry_run=dry_run))
     except CommandError as e:
         # Check for permission-related errors
         if os.geteuid() != 0 and (

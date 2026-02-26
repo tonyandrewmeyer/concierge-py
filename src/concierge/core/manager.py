@@ -7,7 +7,9 @@ import yaml
 from concierge.config.models import ConciergeConfig, Status
 from concierge.core.logging import get_logger
 from concierge.core.plan import Plan
+from concierge.system.dryrun import DryRunWorker
 from concierge.system.runner import System
+from concierge.system.worker import Worker
 
 logger = get_logger(__name__)
 
@@ -19,15 +21,18 @@ class Manager:
     and managing the prepare/restore lifecycle.
     """
 
-    def __init__(self, config: ConciergeConfig, trace: bool = False) -> None:
+    def __init__(self, config: ConciergeConfig, trace: bool = False, dry_run: bool = False) -> None:
         """Initialize the Manager.
 
         Args:
             config: Concierge configuration
             trace: Enable trace logging
+            dry_run: Print commands without executing them
         """
         self.config = config
-        self.system = System(trace=trace)
+        self._dry_run = dry_run
+        real_system = System(trace=trace)
+        self.system: Worker = DryRunWorker(real_system) if dry_run else real_system
         self.plan: Plan | None = None
 
     async def prepare(self) -> None:
@@ -102,6 +107,9 @@ class Manager:
         Raises:
             Exception: If recording fails
         """
+        if self._dry_run:
+            return
+
         self.config.status = status
 
         # Serialize config to YAML
@@ -126,6 +134,11 @@ class Manager:
         contents = await self.system.read_home_file(record_path)
         data = yaml.safe_load(contents)
 
-        self.config = ConciergeConfig.model_validate(data)
+        # Preserve CLI flags from current config
+        loaded_config = ConciergeConfig.model_validate(data)
+        loaded_config.dry_run = self.config.dry_run
+        loaded_config.trace = self.config.trace
+        loaded_config.verbose = self.config.verbose
+        self.config = loaded_config
 
         logger.debug("Loaded previous runtime configuration", path=str(record_path))
