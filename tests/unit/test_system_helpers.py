@@ -110,9 +110,7 @@ class TestMkHomeSubdir:
     async def test_creates_directory_and_chowns(self, mock_worker: MagicMock) -> None:
         await mk_home_subdir(mock_worker, Path(".local/share/juju"))
 
-        mock_worker.mkdir_all.assert_called_once_with(
-            Path("/home/testuser/.local/share/juju")
-        )
+        mock_worker.mkdir_all.assert_called_once_with(Path("/home/testuser/.local/share/juju"))
         # Should chown the top-level directory
         mock_worker.chown_all.assert_called_once_with(Path("/home/testuser/.local"))
 
