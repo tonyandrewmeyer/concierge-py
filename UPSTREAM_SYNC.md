@@ -2,14 +2,25 @@
 
 This file tracks synchronization status with [canonical/concierge](https://github.com/canonical/concierge) (the Go implementation).
 
-**Last sync check:** 2026-01-31
+**Last sync check:** 2026-02-26
 **Baseline:** concierge-py created 2024-10-10, syncing changes after that date
 
 ## Pending Changes
 
-All high and medium priority changes have been ported. See branches below for PRs.
+All changes have been ported. See branches below for PRs.
 
 ### Branches Ready for PR
+
+| Branch | Go Commit | Description |
+|--------|-----------|-------------|
+| `feat/presets-as-yaml` | `b28b069` | Store presets as YAML rather than Python/Pydantic |
+| `ci/avoid-unnecessary-k8s-microk8s` | `f33c1e8`, `976a441` | Avoid using K8s/MicroK8s as provider unless explicitly testing |
+| `feat/image-registry-config` | `d844183` | Add image registry configuration for K8s and MicroK8s |
+| `feat/dry-run` | `bebf251` | Add --dry-run flag to prepare and restore commands |
+| `refactor/simplify-system-interface` | `1ac1573` | Simplify system interface, replacing methods with helpers |
+| `fix/snap-channel-defaults` | `2145dd1`, `31f4330`, `0c6c5f9` | Snaps with no explicit channel default to latest/stable |
+
+### Previously Merged
 
 | Branch | Go Commit | Description |
 |--------|-----------|-------------|
