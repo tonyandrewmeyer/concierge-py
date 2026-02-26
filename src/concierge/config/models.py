@@ -136,7 +136,10 @@ class ProviderConfig(BaseModel):
 
 
 class SnapConfig(BaseModel):
-    """Configuration for a specific snap to be installed."""
+    """Configuration for a specific snap to be installed.
+
+    Channel is optional and defaults to latest/stable when omitted.
+    """
 
     channel: str = ""
     connections: list[str] = Field(default_factory=list)
