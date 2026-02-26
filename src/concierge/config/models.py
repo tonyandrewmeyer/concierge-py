@@ -73,6 +73,14 @@ class GoogleConfig(BaseModel):
     )
 
 
+class ImageRegistryConfig(BaseModel):
+    """Configuration for an image registry mirror."""
+
+    url: str = ""
+    username: str = ""
+    password: str = ""
+
+
 class MicroK8sConfig(BaseModel):
     """Configuration for MicroK8s provider."""
 
@@ -82,6 +90,9 @@ class MicroK8sConfig(BaseModel):
     bootstrap: bool = False
     channel: str = ""
     addons: list[str] = Field(default_factory=list)
+    image_registry: ImageRegistryConfig = Field(
+        default_factory=ImageRegistryConfig, alias="image-registry"
+    )
     model_defaults: dict[str, str] = Field(default_factory=dict, alias="model-defaults")
     bootstrap_constraints: dict[str, str] = Field(
         default_factory=dict, alias="bootstrap-constraints"
@@ -97,6 +108,9 @@ class K8sConfig(BaseModel):
     bootstrap: bool = False
     channel: str = ""
     features: dict[str, dict[str, str]] = Field(default_factory=dict)
+    image_registry: ImageRegistryConfig = Field(
+        default_factory=ImageRegistryConfig, alias="image-registry"
+    )
     model_defaults: dict[str, str] = Field(default_factory=dict, alias="model-defaults")
     bootstrap_constraints: dict[str, str] = Field(
         default_factory=dict, alias="bootstrap-constraints"
