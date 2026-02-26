@@ -44,7 +44,7 @@ class DryRunWorker:
         print(cmd.command_string, file=self._out)
         return b""
 
-    async def write_home_file(self, filepath: Path, _contents: bytes) -> None:
+    async def write_home_file(self, filepath: Path, contents: bytes) -> None:  # noqa: ARG002
         full_path = self._real.home_dir() / filepath
         print(f"# Write file: {full_path}", file=self._out)
 
