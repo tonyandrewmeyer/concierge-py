@@ -100,3 +100,6 @@ prepare: |
   chmod +x "$SPREAD_PATH/concierge"
 
   popd
+
+restore: |
+  rm -rf "$SPREAD_PATH/.venv"
