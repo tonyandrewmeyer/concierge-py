@@ -21,6 +21,24 @@ class StructuredLoggerAdapter(logging.LoggerAdapter):
         # Output: Bootstrap complete [provider=lxd duration=42.5]
     """
 
+    def debug(self, msg: Any, *args: Any, **kwargs: Any) -> None:
+        super().debug(msg, *args, **kwargs)
+
+    def info(self, msg: Any, *args: Any, **kwargs: Any) -> None:
+        super().info(msg, *args, **kwargs)
+
+    def warning(self, msg: Any, *args: Any, **kwargs: Any) -> None:
+        super().warning(msg, *args, **kwargs)
+
+    def error(self, msg: Any, *args: Any, **kwargs: Any) -> None:
+        super().error(msg, *args, **kwargs)
+
+    def exception(self, msg: Any, *args: Any, **kwargs: Any) -> None:
+        super().exception(msg, *args, **kwargs)
+
+    def critical(self, msg: Any, *args: Any, **kwargs: Any) -> None:
+        super().critical(msg, *args, **kwargs)
+
     def process(
         self, msg: Any, kwargs: MutableMapping[str, Any]
     ) -> tuple[Any, MutableMapping[str, Any]]:
