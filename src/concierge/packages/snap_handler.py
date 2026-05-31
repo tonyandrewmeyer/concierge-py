@@ -60,6 +60,11 @@ class SnapHandler:
 
         # Determine action: install or refresh
         if snap_info.installed:
+            # A disabled snap must be enabled before it can be refreshed.
+            if not snap_info.active:
+                enable_cmd = Command(executable="snap", args=["enable", snap.name])
+                await self.system.run_exclusive(enable_cmd)
+                logger.info("Enabled disabled snap", snap=snap.name)
             action = "refresh"
             log_action = "Refreshed"
         else:
