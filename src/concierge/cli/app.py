@@ -55,6 +55,10 @@ def prepare(
         str,
         typer.Option("--juju-channel", help="Juju snap channel override"),
     ] = "",
+    juju_revision: Annotated[
+        str,
+        typer.Option("--juju-revision", help="Juju snap revision override"),
+    ] = "",
     lxd_channel: Annotated[
         str,
         typer.Option("--lxd-channel", help="LXD snap channel override"),
@@ -124,6 +128,7 @@ def prepare(
     cli_overrides = ConfigOverrides(
         disable_juju=disable_juju or env_overrides.disable_juju,
         juju_channel=juju_channel or env_overrides.juju_channel,
+        juju_revision=juju_revision or env_overrides.juju_revision,
         k8s_channel=k8s_channel or env_overrides.k8s_channel,
         microk8s_channel=microk8s_channel or env_overrides.microk8s_channel,
         lxd_channel=lxd_channel or env_overrides.lxd_channel,

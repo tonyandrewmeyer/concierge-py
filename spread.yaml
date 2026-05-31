@@ -74,6 +74,7 @@ exclude:
   - dist/
   - .git
   - .github
+  - .venv
 
 # this needs to be under /root because spread executes the test scripts
 # as root, which means that juju can only see files in root's

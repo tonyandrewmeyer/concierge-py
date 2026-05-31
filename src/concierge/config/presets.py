@@ -153,6 +153,7 @@ def _dev_preset() -> ConciergeConfig:
                         channel="latest/stable",
                         connections=["jhack:dot-local-share-juju"],
                     ),
+                    "astral-uv": SnapConfig(channel="latest/stable"),
                 },
             ),
         ),

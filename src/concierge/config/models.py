@@ -19,6 +19,7 @@ class ConfigOverrides(BaseModel):
 
     disable_juju: bool = False
     juju_channel: str = ""
+    juju_revision: str = ""
     k8s_channel: str = ""
     microk8s_channel: str = ""
     lxd_channel: str = ""
@@ -37,6 +38,7 @@ class JujuConfig(BaseModel):
 
     disable: bool = False
     channel: str = ""
+    revision: str = ""
     agent_version: str = Field("", alias="agent-version")
     model_defaults: dict[str, str] = Field(default_factory=dict, alias="model-defaults")
     bootstrap_constraints: dict[str, str] = Field(
@@ -150,7 +152,10 @@ class ProviderConfig(BaseModel):
 
 
 class SnapConfig(BaseModel):
-    """Configuration for a specific snap to be installed."""
+    """Configuration for a specific snap to be installed.
+
+    Channel is optional and defaults to latest/stable when omitted.
+    """
 
     channel: str = ""
     connections: list[str] = Field(default_factory=list)
