@@ -29,11 +29,15 @@ class Snap:
     Attributes:
         name: Name of the snap
         channel: Snap Store channel to install from
+        revision: Snap Store revision to install. If both channel and revision
+            are set, snap uses the revision; channel is only used for tracking
+            after install.
         connections: List of snap connections to establish
     """
 
     name: str
     channel: str = ""
+    revision: str = ""
     connections: list[str] = field(default_factory=list)
 
     @staticmethod
