@@ -21,6 +21,13 @@ class StructuredLoggerAdapter(logging.LoggerAdapter):
         # Output: Bootstrap complete [provider=lxd duration=42.5]
     """
 
+    # The stdlib LoggerAdapter methods are typed to accept only the documented
+    # logging kwargs (exc_info, stack_info, stacklevel, extra). We accept
+    # arbitrary **kwargs so callers can pass structlog-style context
+    # (e.g. logger.info("done", provider="lxd")); process() folds those extra
+    # kwargs into the formatted message at runtime. These overrides exist
+    # purely to widen the signature for type checkers — the behaviour is
+    # unchanged from the inherited implementations.
     def debug(self, msg: Any, *args: Any, **kwargs: Any) -> None:
         super().debug(msg, *args, **kwargs)
 
