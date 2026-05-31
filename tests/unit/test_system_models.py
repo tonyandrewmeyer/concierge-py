@@ -43,6 +43,7 @@ class TestSnap:
         snap = Snap(name="charmcraft")
         assert snap.name == "charmcraft"
         assert snap.channel == ""
+        assert snap.revision == ""
         assert snap.connections == []
 
     def test_create_snap_with_channel(self) -> None:
@@ -51,6 +52,13 @@ class TestSnap:
         assert snap.name == "charmcraft"
         assert snap.channel == "latest/stable"
         assert snap.connections == []
+
+    def test_create_snap_with_revision(self) -> None:
+        """Test creating a Snap with an explicit snap revision."""
+        snap = Snap(name="juju", channel="3.6/stable", revision="31429")
+        assert snap.name == "juju"
+        assert snap.channel == "3.6/stable"
+        assert snap.revision == "31429"
 
     def test_create_snap_with_connections(self) -> None:
         """Test creating a Snap with connections."""
