@@ -21,6 +21,31 @@ class StructuredLoggerAdapter(logging.LoggerAdapter):
         # Output: Bootstrap complete [provider=lxd duration=42.5]
     """
 
+    # The stdlib LoggerAdapter methods are typed to accept only the documented
+    # logging kwargs (exc_info, stack_info, stacklevel, extra). We accept
+    # arbitrary **kwargs so callers can pass structlog-style context
+    # (e.g. logger.info("done", provider="lxd")); process() folds those extra
+    # kwargs into the formatted message at runtime. These overrides exist
+    # purely to widen the signature for type checkers — the behaviour is
+    # unchanged from the inherited implementations.
+    def debug(self, msg: Any, *args: Any, **kwargs: Any) -> None:
+        super().debug(msg, *args, **kwargs)
+
+    def info(self, msg: Any, *args: Any, **kwargs: Any) -> None:
+        super().info(msg, *args, **kwargs)
+
+    def warning(self, msg: Any, *args: Any, **kwargs: Any) -> None:
+        super().warning(msg, *args, **kwargs)
+
+    def error(self, msg: Any, *args: Any, **kwargs: Any) -> None:
+        super().error(msg, *args, **kwargs)
+
+    def exception(self, msg: Any, *args: Any, **kwargs: Any) -> None:
+        super().exception(msg, *args, **kwargs)
+
+    def critical(self, msg: Any, *args: Any, **kwargs: Any) -> None:
+        super().critical(msg, *args, **kwargs)
+
     def process(
         self, msg: Any, kwargs: MutableMapping[str, Any]
     ) -> tuple[Any, MutableMapping[str, Any]]:
