@@ -2,7 +2,7 @@
 
 This file tracks synchronization status with [canonical/concierge](https://github.com/canonical/concierge) (the Go implementation).
 
-**Last sync check:** 2026-02-26
+**Last sync check:** 2026-05-31
 **Baseline:** concierge-py created 2024-10-10, syncing changes after that date
 
 ## Pending Changes
@@ -19,6 +19,10 @@ All changes have been ported. See branches below for PRs.
 | [#15](https://github.com/tonyandrewmeyer/concierge-py/pull/15) | `feat/dry-run` | `bebf251` | Add --dry-run flag to prepare and restore commands |
 | [#16](https://github.com/tonyandrewmeyer/concierge-py/pull/16) | `refactor/simplify-system-interface` | `1ac1573` | Simplify system interface, replacing methods with helpers |
 | [#17](https://github.com/tonyandrewmeyer/concierge-py/pull/17) | `fix/snap-channel-defaults` | `2145dd1`, `31f4330`, `0c6c5f9` | Snaps with no explicit channel default to latest/stable |
+| [#18](https://github.com/tonyandrewmeyer/concierge-py/pull/18) | `feat/dev-preset-astral-uv` | `6d63fc2` | Add astral-uv to the dev preset |
+| [#19](https://github.com/tonyandrewmeyer/concierge-py/pull/19) | `fix/containerd-pre-bootstrap-only` | `0ddf24c` | Only remove /run/containerd if we need to bootstrap k8s |
+| [#20](https://github.com/tonyandrewmeyer/concierge-py/pull/20) | `fix/disabled-snap-handling` | `86b1b21` | Treat non-active installed snaps as installed |
+| [#21](https://github.com/tonyandrewmeyer/concierge-py/pull/21) | `feat/juju-snap-revision` | `2f64cda` | Allow specifying a Juju snap revision |
 
 ### Previously Merged
 
@@ -40,6 +44,10 @@ All changes have been ported. See branches below for PRs.
 | `00102fd` | Install iptables for k8s provider if not present | Already in k8s provider |
 | `158c3a7` | Ensure LXD is started again after refresh | Already in `_install()` |
 | `fea22ef` | Workaround LXD refresh issue | Already in `_workaround_refresh()` |
+| `276edb8` | Use MicroK8s config for model defaults and bootstrap constraints | Python `MicroK8s.__init__` already reads from `config.providers.microk8s` (the upstream bug was a Go copy-paste from `config.Providers.Google`) |
+| `6307920` | Merge provider credentials instead of overwriting | Python `build_credentials_yaml` already sets per-cloud keys on the inner map rather than replacing it |
+| `5b915d8` | Fall back to getent for users not in /etc/passwd | Python's `pwd.getpwnam` calls libc and already consults NSS (SSSD/LDAP) on systems where it's configured |
+| `f7b67a7` | Drop logs to trace if an error is expected | Python's runner only prints command output when `--trace` is set, so expected failures are already silenced by default |
 
 ## Previously Implemented
 
@@ -62,5 +70,14 @@ These features from the Go version were already implemented in concierge-py:
 These changes don't apply to the Python implementation:
 
 - `eb8b563` - Replace snapcore/snapd dependency (Python has its own implementation)
-- Various Go dependency bumps
-- Go-specific refactors
+- `806de38` - Don't retry permanent `ErrNotInstalled` errors — depends on the `DryRunWorker` mechanism from #15, which is still an open PR; needs human review once that lands
+- `e137417` - Minor Go linting cleanup
+- `75e1947` - Zizmor workflow (concierge-py already has its own `zizmor.yaml`)
+- `ea1a5ee` - Go static analysis workflow (golangci-lint, not applicable to Python)
+- `e57ee40` - Spread integration test adjustment
+- `00e4e48` - Dependabot cooldown tailored to Go's dependency stream
+- `0b54dd0` - SECURITY.md PGP key update — concierge-py does not have a `SECURITY.md`
+- `d6548eb` - Viper nil-value workaround (Viper is Go-specific; Python uses Pydantic)
+- `e904ac9`, `600fdca` - Release-time secscan / SBOM workflows for the Go binary
+- `c3f5a01`, `25e26be`, `54cc160` - Go toolchain version bumps
+- Various Go dependency bumps and GitHub Action version bumps (`43771aa`, `3ee502c`, `defca86`, `9c4a90b`, `cf9537c`, `c549727`, `aeda3bc`, `90530f3`, `ef54599`, `3d81a68`)
