@@ -145,11 +145,12 @@ class K8s:
         Raises:
             Exception: If initialization fails
         """
-        # Handle pre-existing containerd that would conflict with k8s snap
-        await self._handle_existing_containerd()
-
-        # Bootstrap if cluster not already created
+        # Bootstrap if cluster not already created. Only touch pre-existing
+        # containerd state when we actually need to bootstrap k8s ourselves:
+        # if k8s is already bootstrapped, /run/containerd belongs to it and
+        # must be left alone for concierge to be idempotent.
         if await self._needs_bootstrap():
+            await self._handle_existing_containerd()
             cmd = Command(executable="k8s", args=["bootstrap"])
             await self.system.run_with_retries(cmd, 5 * 60 * 1000)  # 5 minutes in ms
 
