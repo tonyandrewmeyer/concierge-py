@@ -72,6 +72,9 @@ class SnapHandler:
         if snap.channel:
             args.extend(["--channel", snap.channel])
 
+        if snap.revision:
+            args.extend(["--revision", snap.revision])
+
         if snap_info.classic:
             args.append("--classic")
 

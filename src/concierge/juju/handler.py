@@ -88,13 +88,19 @@ class JujuHandler:
         if config.overrides.juju_channel:
             channel = config.overrides.juju_channel
 
+        # Apply revision override if present
+        revision = config.juju.revision
+        if config.overrides.juju_revision:
+            revision = config.overrides.juju_revision
+
         self.channel = channel
+        self.revision = revision
         self.agent_version = config.juju.agent_version
         self.model_defaults = config.juju.model_defaults
         self.bootstrap_constraints = config.juju.bootstrap_constraints
         self.extra_bootstrap_args = config.juju.extra_bootstrap_args
 
-        self.snaps = [Snap(name="juju", channel=channel)]
+        self.snaps = [Snap(name="juju", channel=channel, revision=revision)]
 
     async def prepare(self) -> None:
         """Prepare Juju by installing, configuring, and bootstrapping.

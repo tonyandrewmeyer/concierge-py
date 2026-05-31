@@ -109,6 +109,8 @@ def _apply_overrides(config: ConciergeConfig, overrides: ConfigOverrides) -> Non
         config.juju.disable = True
     if overrides.juju_channel:
         config.juju.channel = overrides.juju_channel
+    if overrides.juju_revision:
+        config.juju.revision = overrides.juju_revision
 
     # Provider channel overrides
     if overrides.lxd_channel:
@@ -180,6 +182,7 @@ def get_env_overrides() -> ConfigOverrides:
     return ConfigOverrides(
         disable_juju=get_bool("disable_juju"),
         juju_channel=get_str("juju_channel"),
+        juju_revision=get_str("juju_revision"),
         k8s_channel=get_str("k8s_channel"),
         microk8s_channel=get_str("microk8s_channel"),
         lxd_channel=get_str("lxd_channel"),
