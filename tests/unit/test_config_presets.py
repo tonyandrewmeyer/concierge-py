@@ -262,6 +262,7 @@ class TestPresetContents:
         assert "snapcraft" in config.host.snaps
         assert "rockcraft" in config.host.snaps
         assert "jhack" in config.host.snaps
+        assert "astral-uv" in config.host.snaps
 
     def test_crafts_preset_juju_disabled(self) -> None:
         """Test that crafts preset has Juju disabled."""
