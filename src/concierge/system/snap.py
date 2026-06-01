@@ -49,7 +49,7 @@ class SnapdClient:
             Exception: If snapd API fails
         """
         # Check if snap is installed and get tracking channel
-        installed, tracking_channel = await self._snap_installed_info(snap_name)
+        installed, active, tracking_channel = await self._snap_installed_info(snap_name)
 
         # Check if snap uses classic confinement
         classic = await self._snap_is_classic(snap_name, channel)
@@ -58,12 +58,14 @@ class SnapdClient:
             "Queried snapd API",
             snap=snap_name,
             installed=installed,
+            active=active,
             classic=classic,
             tracking=tracking_channel,
         )
 
         return SnapInfo(
             installed=installed,
+            active=active,
             classic=classic,
             tracking_channel=tracking_channel,
         )
@@ -90,31 +92,40 @@ class SnapdClient:
 
         return channels
 
-    async def _snap_installed_info(self, snap_name: str) -> tuple[bool, str]:
+    async def _snap_installed_info(self, snap_name: str) -> tuple[bool, bool, str]:
         """Check if snap is installed and get its tracking channel.
+
+        snapd reports "active" for a normal installed-and-enabled snap, and
+        "installed" for a snap that is installed but disabled (e.g. while a
+        refresh is in progress). Both states mean the snap is present on disk
+        and should be refreshed rather than installed afresh.
 
         Args:
             snap_name: Name of the snap
 
         Returns:
-            Tuple of (is_installed, tracking_channel)
+            Tuple of (is_installed, is_active, tracking_channel). `is_active`
+            is True only for the "active" status; a disabled snap has
+            `is_installed=True` and `is_active=False`.
         """
         try:
             snap_data = await self._get_snap(snap_name)
 
-            if snap_data and snap_data.get("status") == "active":
-                tracking_channel = snap_data.get("tracking-channel", "")
-                if not tracking_channel:
-                    tracking_channel = snap_data.get("channel", "")
-                return True, tracking_channel
+            if snap_data:
+                status = snap_data.get("status")
+                if status in ("active", "installed"):
+                    tracking_channel = snap_data.get("tracking-channel", "")
+                    if not tracking_channel:
+                        tracking_channel = snap_data.get("channel", "")
+                    return True, status == "active", tracking_channel
 
-            return False, ""
+            return False, False, ""
 
         except Exception as e:
             # If snap is not installed, the API returns an error
             error_msg = str(e).lower()
             if "snap not installed" in error_msg or "not found" in error_msg:
-                return False, ""
+                return False, False, ""
             # For other errors, re-raise
             raise
 

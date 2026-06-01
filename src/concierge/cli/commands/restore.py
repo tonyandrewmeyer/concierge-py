@@ -7,7 +7,7 @@ from concierge.core.manager import Manager
 logger = get_logger(__name__)
 
 
-async def run_restore(config_file: str, preset: str) -> None:
+async def run_restore(config_file: str, preset: str, *, dry_run: bool = False) -> None:
     """Execute the restore command to revert the environment.
 
     Args:
@@ -20,7 +20,7 @@ async def run_restore(config_file: str, preset: str) -> None:
     config = load_config(config_file=config_file, preset=preset)
 
     # Create manager and execute restoration
-    manager = Manager(config)
+    manager = Manager(config, dry_run=dry_run)
     await manager.restore()
 
     logger.info("Environment restoration completed successfully")

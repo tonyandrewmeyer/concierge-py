@@ -12,6 +12,8 @@ async def run_prepare(
     config_file: str,
     preset: str,
     overrides: ConfigOverrides,
+    *,
+    dry_run: bool = False,
 ) -> None:
     """Execute the prepare command to provision the environment.
 
@@ -37,7 +39,7 @@ async def run_prepare(
     )
 
     # Create manager and execute preparation
-    manager = Manager(config, trace=config.trace)
+    manager = Manager(config, trace=config.trace, dry_run=dry_run)
     await manager.prepare()
 
     logger.info("Environment preparation completed successfully")
