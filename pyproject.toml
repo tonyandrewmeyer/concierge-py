@@ -64,7 +64,7 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101"]  # Allow assert usage in tests
+"tests/*" = ["S101", "S105", "S106"]  # Allow assert usage and hardcoded test passwords in tests
 
 [dependency-groups]
 dev = [

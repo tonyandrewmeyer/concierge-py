@@ -6,6 +6,7 @@ from typing import Any
 from concierge.config.models import ConciergeConfig
 from concierge.core.logging import get_logger
 from concierge.packages.snap_handler import SnapHandler
+from concierge.providers.registry import build_hosts_toml
 from concierge.system.command import Command
 from concierge.system.models import Snap
 from concierge.system.worker import Worker
@@ -56,6 +57,7 @@ class MicroK8s:
         self._model_defaults = config.providers.microk8s.model_defaults
         self._bootstrap_constraints = config.providers.microk8s.bootstrap_constraints
         self.addons = config.providers.microk8s.addons
+        self._image_registry = config.providers.microk8s.image_registry
 
         # Determine channel with precedence: override > config > computed default
         if config.overrides.microk8s_channel:
@@ -83,6 +85,7 @@ class MicroK8s:
             self.snaps[0].channel = self.channel
 
         await self._install()
+        await self._configure_image_registry()
         await self._init()
         await self._enable_addons()
         await self._enable_non_root_user_control()
@@ -142,6 +145,31 @@ class MicroK8s:
         """
         snap_handler = SnapHandler(self.system, self.snaps)
         await snap_handler.prepare()
+
+    async def _configure_image_registry(self) -> None:
+        """Configure an image registry mirror for MicroK8s."""
+        if not self._image_registry.url:
+            return
+
+        logger.info("Configuring image registry", url=self._image_registry.url)
+
+        certs_dir = "/var/snap/microk8s/current/args/certs.d/docker.io"
+        cmd = Command(executable="mkdir", args=["-p", certs_dir])
+        await self.system.run(cmd)
+
+        hosts_config = build_hosts_toml(self._image_registry)
+        hosts_path = f"{certs_dir}/hosts.toml"
+        cmd = Command(
+            executable="bash",
+            args=["-c", f"cat > {hosts_path} << 'HOSTS_EOF'\n{hosts_config}HOSTS_EOF"],
+        )
+        await self.system.run(cmd)
+
+        # Restart MicroK8s to apply the registry configuration
+        cmd = Command(executable="microk8s", args=["stop"])
+        await self.system.run(cmd)
+        cmd = Command(executable="microk8s", args=["start"])
+        await self.system.run(cmd)
 
     async def _init(self) -> None:
         """Initialize MicroK8s and wait for ready state.
