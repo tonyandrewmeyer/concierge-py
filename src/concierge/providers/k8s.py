@@ -9,6 +9,7 @@ from concierge.config.models import ConciergeConfig
 from concierge.core.logging import get_logger
 from concierge.packages.deb_handler import DebHandler
 from concierge.packages.snap_handler import SnapHandler
+from concierge.providers.registry import build_hosts_toml
 from concierge.system.command import Command, CommandError
 from concierge.system.models import Snap
 from concierge.system.worker import Worker
@@ -37,6 +38,7 @@ class K8s:
         self._model_defaults = config.providers.k8s.model_defaults
         self._bootstrap_constraints = config.providers.k8s.bootstrap_constraints
         self.features = config.providers.k8s.features
+        self._image_registry = config.providers.k8s.image_registry
 
         # Determine channel with precedence: override > config > default
         if config.overrides.k8s_channel:
@@ -59,6 +61,7 @@ class K8s:
             Exception: If preparation fails
         """
         await self._install()
+        await self._configure_image_registry()
         await self._init()
         await self._configure_features()
         await self._setup_kubectl()
@@ -145,11 +148,12 @@ class K8s:
         Raises:
             Exception: If initialization fails
         """
-        # Handle pre-existing containerd that would conflict with k8s snap
-        await self._handle_existing_containerd()
-
-        # Bootstrap if cluster not already created
+        # Bootstrap if cluster not already created. Only touch pre-existing
+        # containerd state when we actually need to bootstrap k8s ourselves:
+        # if k8s is already bootstrapped, /run/containerd belongs to it and
+        # must be left alone for concierge to be idempotent.
         if await self._needs_bootstrap():
+            await self._handle_existing_containerd()
             cmd = Command(executable="k8s", args=["bootstrap"])
             await self.system.run_with_retries(cmd, 5 * 60 * 1000)  # 5 minutes in ms
 
@@ -242,6 +246,25 @@ class K8s:
                 logger.debug("Successfully removed /run/containerd directory")
             except OSError as e:
                 logger.warning("Failed to remove /run/containerd directory", error=str(e))
+
+    async def _configure_image_registry(self) -> None:
+        """Configure an image registry mirror for K8s."""
+        if not self._image_registry.url:
+            return
+
+        logger.info("Configuring image registry", url=self._image_registry.url)
+
+        hosts_dir = "/etc/containerd/hosts.d/docker.io"
+        cmd = Command(executable="mkdir", args=["-p", hosts_dir])
+        await self.system.run(cmd)
+
+        hosts_config = build_hosts_toml(self._image_registry)
+        hosts_path = f"{hosts_dir}/hosts.toml"
+        cmd = Command(
+            executable="bash",
+            args=["-c", f"cat > {hosts_path} << 'HOSTS_EOF'\n{hosts_config}HOSTS_EOF"],
+        )
+        await self.system.run(cmd)
 
     async def _restore_containerd(self) -> None:
         """Restore containerd service if it was stopped during prepare."""

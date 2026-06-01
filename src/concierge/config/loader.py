@@ -1,6 +1,7 @@
 """Configuration loading and parsing for Concierge."""
 
 import os
+import re
 from pathlib import Path
 
 import yaml
@@ -49,6 +50,9 @@ def load_config(
         else:
             logger.info("No config file found, using 'dev' preset")
             config = get_preset("dev")
+
+    # Expand environment variables in fields that support it
+    _expand_config_env_vars(config)
 
     # Apply overrides if provided
     if overrides:
@@ -109,6 +113,8 @@ def _apply_overrides(config: ConciergeConfig, overrides: ConfigOverrides) -> Non
         config.juju.disable = True
     if overrides.juju_channel:
         config.juju.channel = overrides.juju_channel
+    if overrides.juju_revision:
+        config.juju.revision = overrides.juju_revision
 
     # Provider channel overrides
     if overrides.lxd_channel:
@@ -180,6 +186,7 @@ def get_env_overrides() -> ConfigOverrides:
     return ConfigOverrides(
         disable_juju=get_bool("disable_juju"),
         juju_channel=get_str("juju_channel"),
+        juju_revision=get_str("juju_revision"),
         k8s_channel=get_str("k8s_channel"),
         microk8s_channel=get_str("microk8s_channel"),
         lxd_channel=get_str("lxd_channel"),
@@ -190,3 +197,27 @@ def get_env_overrides() -> ConfigOverrides:
         extra_snaps=get_list("extra_snaps"),
         extra_debs=get_list("extra_debs"),
     )
+
+
+_ENV_VAR_PATTERN = re.compile(r"\$\{([a-zA-Z_][a-zA-Z0-9_]*)\}|\$([a-zA-Z_][a-zA-Z0-9_]*)")
+
+
+def _expand_env_vars(s: str) -> str:
+    """Expand $VAR and ${VAR} references in a string."""
+
+    def _replacer(match: re.Match[str]) -> str:
+        var_name = match.group(1) or match.group(2)
+        return os.environ.get(var_name, "")
+
+    return _ENV_VAR_PATTERN.sub(_replacer, s)
+
+
+def _expand_config_env_vars(config: ConciergeConfig) -> None:
+    """Expand environment variables in config string fields that support it."""
+    for registry in (
+        config.providers.microk8s.image_registry,
+        config.providers.k8s.image_registry,
+    ):
+        registry.url = _expand_env_vars(registry.url)
+        registry.username = _expand_env_vars(registry.username)
+        registry.password = _expand_env_vars(registry.password)
