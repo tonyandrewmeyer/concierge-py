@@ -32,35 +32,20 @@ class DryRunWorker:
         print(cmd.command_string, file=self._out)
         return b""
 
-    async def run_exclusive(self, cmd: Command) -> bytes:
-        if cmd.read_only:
-            return await self._real.run_exclusive(cmd)
-        print(cmd.command_string, file=self._out)
-        return b""
-
-    async def run_with_retries(self, cmd: Command, max_duration_ms: int) -> bytes:
-        if cmd.read_only:
-            return await self._real.run_with_retries(cmd, max_duration_ms)
-        print(cmd.command_string, file=self._out)
-        return b""
-
-    async def write_home_file(self, filepath: Path, contents: bytes) -> None:  # noqa: ARG002
-        full_path = self._real.home_dir() / filepath
-        print(f"# Write file: {full_path}", file=self._out)
-
-    async def mk_home_subdir(self, subdirectory: Path) -> None:
-        full_path = self._real.home_dir() / subdirectory
-        print(f"mkdir -p {full_path}", file=self._out)
-
-    async def remove_all_home(self, filepath: Path) -> None:
-        full_path = self._real.home_dir() / filepath
-        print(f"rm -rf {full_path}", file=self._out)
-
-    async def read_home_file(self, filepath: Path) -> bytes:
-        return await self._real.read_home_file(filepath)
-
     async def read_file(self, filepath: Path) -> bytes:
         return await self._real.read_file(filepath)
+
+    async def write_file(self, filepath: Path, contents: bytes) -> None:  # noqa: ARG002
+        print(f"# Write file: {filepath}", file=self._out)
+
+    async def mkdir_all(self, dirpath: Path) -> None:
+        print(f"mkdir -p {dirpath}", file=self._out)
+
+    async def remove_path(self, filepath: Path) -> None:
+        print(f"rm -rf {filepath}", file=self._out)
+
+    async def chown_all(self, path: Path) -> None:
+        print(f"# Chown: {path}", file=self._out)
 
     async def snap_info(self, snap: str, channel: str = "") -> SnapInfo:
         return await self._real.snap_info(snap, channel)
