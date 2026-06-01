@@ -12,13 +12,16 @@ class SnapInfo:
     """Information about a snap from the snapd API.
 
     Attributes:
-        installed: Whether the snap is currently installed
+        installed: Whether the snap is currently installed (active or disabled)
+        active: Whether the snap is installed and enabled. False for installed
+            but disabled snaps (e.g. during a refresh).
         classic: Whether the snap uses classic confinement
         tracking_channel: The channel the snap is tracking (if installed)
     """
 
     installed: bool
     classic: bool
+    active: bool = False
     tracking_channel: str = ""
 
 

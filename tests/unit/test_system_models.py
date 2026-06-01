@@ -11,6 +11,7 @@ class TestSnapInfo:
         snap_info = SnapInfo(installed=True, classic=False, tracking_channel="latest/stable")
         assert snap_info.installed is True
         assert snap_info.classic is False
+        assert snap_info.active is False
         assert snap_info.tracking_channel == "latest/stable"
 
     def test_snapinfo_defaults(self) -> None:
@@ -18,6 +19,7 @@ class TestSnapInfo:
         snap_info = SnapInfo(installed=True, classic=False)
         assert snap_info.installed is True
         assert snap_info.classic is False
+        assert snap_info.active is False
         assert snap_info.tracking_channel == ""
 
     def test_snapinfo_not_installed(self) -> None:
@@ -25,6 +27,7 @@ class TestSnapInfo:
         snap_info = SnapInfo(installed=False, classic=False)
         assert snap_info.installed is False
         assert snap_info.classic is False
+        assert snap_info.active is False
         assert snap_info.tracking_channel == ""
 
     def test_snapinfo_classic_confinement(self) -> None:
@@ -33,6 +36,18 @@ class TestSnapInfo:
         assert snap_info.installed is True
         assert snap_info.classic is True
         assert snap_info.tracking_channel == "latest/edge"
+
+    def test_snapinfo_disabled_snap(self) -> None:
+        """Test SnapInfo for an installed-but-disabled snap."""
+        snap_info = SnapInfo(installed=True, classic=False, active=False)
+        assert snap_info.installed is True
+        assert snap_info.active is False
+
+    def test_snapinfo_active_snap(self) -> None:
+        """Test SnapInfo for an active (normal) snap."""
+        snap_info = SnapInfo(installed=True, classic=False, active=True)
+        assert snap_info.installed is True
+        assert snap_info.active is True
 
 
 class TestSnap:
