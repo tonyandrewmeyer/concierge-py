@@ -8,6 +8,7 @@ from concierge.config.models import ConciergeConfig, Status
 from concierge.core.logging import get_logger
 from concierge.core.plan import Plan
 from concierge.system.dryrun import DryRunWorker
+from concierge.system.helpers import read_home_file, write_home_file
 from concierge.system.runner import System
 from concierge.system.worker import Worker
 
@@ -69,7 +70,7 @@ class Manager:
         record_path = Path(".cache/concierge/concierge.yaml")
 
         try:
-            contents = await self.system.read_home_file(record_path)
+            contents = await read_home_file(self.system, record_path)
             data = yaml.safe_load(contents)
             return Status(data.get("status", "provisioning"))
         except FileNotFoundError:
@@ -118,7 +119,7 @@ class Manager:
 
         # Write to cache
         filepath = Path(".cache/concierge/concierge.yaml")
-        await self.system.write_home_file(filepath, config_yaml.encode("utf-8"))
+        await write_home_file(self.system, filepath, config_yaml.encode("utf-8"))
 
         logger.debug("Merged runtime configuration saved", path=str(filepath))
 
@@ -131,7 +132,7 @@ class Manager:
         """
         record_path = Path(".cache/concierge/concierge.yaml")
 
-        contents = await self.system.read_home_file(record_path)
+        contents = await read_home_file(self.system, record_path)
         data = yaml.safe_load(contents)
 
         # Preserve CLI flags from current config

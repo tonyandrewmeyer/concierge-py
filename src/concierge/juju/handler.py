@@ -20,6 +20,7 @@ from concierge.juju.credentials import build_credentials_yaml
 from concierge.packages.snap_handler import SnapHandler
 from concierge.providers.base import Provider
 from concierge.system.command import Command, CommandError
+from concierge.system.helpers import mk_home_subdir, run_with_retries, write_home_file
 from concierge.system.models import Snap
 from concierge.system.worker import Worker
 
@@ -111,7 +112,7 @@ class JujuHandler:
         await self._install()
 
         # Create Juju data directory
-        await self.system.mk_home_subdir(Path(".local/share/juju"))
+        await mk_home_subdir(self.system, Path(".local/share/juju"))
 
         # Write credentials
         await self._write_credentials()
@@ -133,7 +134,7 @@ class JujuHandler:
             await self._kill_provider(provider)
 
         # Remove Juju data directory
-        await self.system.remove_all_home(Path(".local/share/juju"))
+        await self.system.remove_path(self.system.home_dir() / ".local/share/juju")
 
         # Uninstall Juju snap
         snap_handler = SnapHandler(self.system, self.snaps)
@@ -166,8 +167,8 @@ class JujuHandler:
         content = yaml.safe_dump(credentials_data, default_flow_style=False)
 
         # Write to credentials.yaml
-        await self.system.write_home_file(
-            Path(".local/share/juju/credentials.yaml"), content.encode("utf-8")
+        await write_home_file(
+            self.system, Path(".local/share/juju/credentials.yaml"), content.encode("utf-8")
         )
 
     async def _bootstrap(self) -> None:
@@ -237,7 +238,7 @@ class JujuHandler:
         group = provider.group_name()
         cmd = Command(executable="juju", args=args, user=username, group=group)
 
-        await self.system.run_with_retries(cmd, 5 * 60 * 1000)  # 5 minutes in ms
+        await run_with_retries(self.system, cmd, 5 * 60 * 1000)  # 5 minutes in ms
 
         # Create testing model
         cmd = Command(

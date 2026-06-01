@@ -69,7 +69,7 @@ class TestK8sInit:
 
         await k8s._init()
 
-        commands = [call.args[0] for call in k8s.system.run_with_retries.await_args_list]
+        commands = [call.args[0] for call in k8s.system.run.await_args_list]
         executables_and_args = [(c.executable, tuple(c.args)) for c in commands]
         assert ("k8s", ("bootstrap",)) in executables_and_args
         assert ("k8s", ("status", "--wait-ready", "--timeout", "270s")) in executables_and_args
@@ -81,7 +81,7 @@ class TestK8sInit:
 
         await k8s._init()
 
-        commands = [call.args[0] for call in k8s.system.run_with_retries.await_args_list]
+        commands = [call.args[0] for call in k8s.system.run.await_args_list]
         executables_and_args = [(c.executable, tuple(c.args)) for c in commands]
         assert ("k8s", ("bootstrap",)) not in executables_and_args
         assert ("k8s", ("status", "--wait-ready", "--timeout", "270s")) in executables_and_args

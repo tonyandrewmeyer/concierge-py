@@ -50,29 +50,29 @@ class TestDryRunWorker:
         assert out.getvalue() == ""
         mock_system.run.assert_called_once()
 
-    async def test_write_home_file_prints(self, mock_system: MagicMock) -> None:
+    async def test_write_file_prints(self, mock_system: MagicMock) -> None:
         out = io.StringIO()
         worker = DryRunWorker(mock_system, out=out)
-        await worker.write_home_file(Path(".cache/test"), b"data")
+        await worker.write_file(Path("/home/testuser/.cache/test"), b"data")
         assert "# Write file: /home/testuser/.cache/test" in out.getvalue()
 
-    async def test_mk_home_subdir_prints(self, mock_system: MagicMock) -> None:
+    async def test_mkdir_all_prints(self, mock_system: MagicMock) -> None:
         out = io.StringIO()
         worker = DryRunWorker(mock_system, out=out)
-        await worker.mk_home_subdir(Path(".local/share/juju"))
+        await worker.mkdir_all(Path("/home/testuser/.local/share/juju"))
         assert "mkdir -p /home/testuser/.local/share/juju" in out.getvalue()
 
-    async def test_remove_all_home_prints(self, mock_system: MagicMock) -> None:
+    async def test_remove_path_prints(self, mock_system: MagicMock) -> None:
         out = io.StringIO()
         worker = DryRunWorker(mock_system, out=out)
-        await worker.remove_all_home(Path(".kube"))
+        await worker.remove_path(Path("/home/testuser/.kube"))
         assert "rm -rf /home/testuser/.kube" in out.getvalue()
 
-    async def test_read_home_file_delegates(self, mock_system: MagicMock) -> None:
+    async def test_read_file_delegates(self, mock_system: MagicMock) -> None:
         worker = DryRunWorker(mock_system)
-        result = await worker.read_home_file(Path(".config/test"))
+        result = await worker.read_file(Path("/home/testuser/.config/test"))
         assert result == b"file contents"
-        mock_system.read_home_file.assert_called_once()
+        mock_system.read_file.assert_called_once()
 
     async def test_snap_info_delegates(self, mock_system: MagicMock) -> None:
         worker = DryRunWorker(mock_system)
