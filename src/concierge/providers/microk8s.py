@@ -8,6 +8,7 @@ from concierge.core.logging import get_logger
 from concierge.packages.snap_handler import SnapHandler
 from concierge.providers.registry import build_hosts_toml
 from concierge.system.command import Command
+from concierge.system.helpers import run_with_retries, write_home_file
 from concierge.system.models import Snap
 from concierge.system.worker import Worker
 
@@ -103,7 +104,7 @@ class MicroK8s:
         await snap_handler.restore()
 
         # Remove kubeconfig
-        await self.system.remove_all_home(Path(".kube"))
+        await self.system.remove_path(self.system.home_dir() / ".kube")
 
         logger.info("Removed provider", provider=self.name())
 
@@ -178,7 +179,7 @@ class MicroK8s:
             Exception: If initialization fails
         """
         cmd = Command(executable="microk8s", args=["status", "--wait-ready", "--timeout", "270"])
-        await self.system.run_with_retries(cmd, 5 * 60 * 1000)  # 5 minutes in ms
+        await run_with_retries(self.system, cmd, 5 * 60 * 1000)  # 5 minutes in ms
 
     async def _enable_addons(self) -> None:
         """Enable configured MicroK8s addons.
@@ -194,7 +195,7 @@ class MicroK8s:
                 enable_arg = "metallb:10.64.140.43-10.64.140.49"
 
             cmd = Command(executable="microk8s", args=["enable", enable_arg])
-            await self.system.run_with_retries(cmd, 5 * 60 * 1000)  # 5 minutes in ms
+            await run_with_retries(self.system, cmd, 5 * 60 * 1000)  # 5 minutes in ms
 
     async def _enable_non_root_user_control(self) -> None:
         """Enable non-root user to control MicroK8s.
@@ -218,4 +219,4 @@ class MicroK8s:
         result = await self.system.run(cmd)
 
         # Write to .kube/config
-        await self.system.write_home_file(Path(".kube/config"), result)
+        await write_home_file(self.system, Path(".kube/config"), result)

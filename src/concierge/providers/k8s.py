@@ -11,6 +11,7 @@ from concierge.packages.deb_handler import DebHandler
 from concierge.packages.snap_handler import SnapHandler
 from concierge.providers.registry import build_hosts_toml
 from concierge.system.command import Command, CommandError
+from concierge.system.helpers import run_with_retries, write_home_file
 from concierge.system.models import Snap
 from concierge.system.worker import Worker
 
@@ -78,7 +79,7 @@ class K8s:
         await snap_handler.restore()
 
         # Remove kubeconfig
-        await self.system.remove_all_home(Path(".kube"))
+        await self.system.remove_path(self.system.home_dir() / ".kube")
 
         # Restore containerd if we stopped it during prepare
         await self._restore_containerd()
@@ -155,11 +156,11 @@ class K8s:
         if await self._needs_bootstrap():
             await self._handle_existing_containerd()
             cmd = Command(executable="k8s", args=["bootstrap"])
-            await self.system.run_with_retries(cmd, 5 * 60 * 1000)  # 5 minutes in ms
+            await run_with_retries(self.system, cmd, 5 * 60 * 1000)  # 5 minutes in ms
 
         # Wait for cluster to be ready
         cmd = Command(executable="k8s", args=["status", "--wait-ready", "--timeout", "270s"])
-        await self.system.run_with_retries(cmd, 5 * 60 * 1000)  # 5 minutes in ms
+        await run_with_retries(self.system, cmd, 5 * 60 * 1000)  # 5 minutes in ms
 
     async def _needs_bootstrap(self) -> bool:
         """Check if the cluster needs to be bootstrapped.
@@ -195,7 +196,7 @@ class K8s:
 
             # Enable the feature
             cmd = Command(executable="k8s", args=["enable", feature_name])
-            await self.system.run_with_retries(cmd, 5 * 60 * 1000)  # 5 minutes in ms
+            await run_with_retries(self.system, cmd, 5 * 60 * 1000)  # 5 minutes in ms
 
     async def _setup_kubectl(self) -> None:
         """Setup kubectl configuration for K8s.
@@ -208,7 +209,7 @@ class K8s:
         result = await self.system.run(cmd)
 
         # Write to .kube/config
-        await self.system.write_home_file(Path(".kube/config"), result)
+        await write_home_file(self.system, Path(".kube/config"), result)
 
     async def _handle_existing_containerd(self) -> None:
         """Handle pre-existing containerd installations.

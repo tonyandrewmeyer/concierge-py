@@ -6,6 +6,7 @@ from concierge.config.models import ConciergeConfig
 from concierge.core.logging import get_logger
 from concierge.packages.snap_handler import SnapHandler
 from concierge.system.command import Command
+from concierge.system.helpers import run_exclusive
 from concierge.system.models import Snap
 from concierge.system.worker import Worker
 
@@ -107,7 +108,7 @@ class LXD:
         # Restart LXD if we stopped it
         if restart:
             cmd = Command(executable="snap", args=["start", self.name()])
-            await self.system.run_exclusive(cmd)
+            await run_exclusive(self.system, cmd)
 
     async def _init(self) -> None:
         """Initialize LXD with minimal configuration.
@@ -190,7 +191,7 @@ class LXD:
                 target=self.channel,
             )
             cmd = Command(executable="snap", args=["stop", self.name()])
-            await self.system.run_exclusive(cmd)
+            await run_exclusive(self.system, cmd)
             return True
 
         return False

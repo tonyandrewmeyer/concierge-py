@@ -19,7 +19,7 @@ def _make_handler(snap: Snap, snap_info: SnapInfo) -> tuple[SnapHandler, MagicMo
 
 
 def _commands(worker: MagicMock) -> list[Command]:
-    return [call.args[0] for call in worker.run_exclusive.await_args_list]
+    return [call.args[0] for call in worker.run.await_args_list]
 
 
 def _install_args(worker: MagicMock) -> list[str]:

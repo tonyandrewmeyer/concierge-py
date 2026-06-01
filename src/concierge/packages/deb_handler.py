@@ -2,6 +2,7 @@
 
 from concierge.core.logging import get_logger
 from concierge.system.command import Command
+from concierge.system.helpers import run_exclusive
 from concierge.system.worker import Worker
 
 logger = get_logger(__name__)
@@ -52,7 +53,7 @@ class DebHandler:
 
         # Clean up unused dependencies
         cmd = Command(executable="apt-get", args=["autoremove", "-y"])
-        await self.system.run_exclusive(cmd)
+        await run_exclusive(self.system, cmd)
 
     async def _update_apt_cache(self) -> None:
         """Update the apt package cache.
@@ -61,7 +62,7 @@ class DebHandler:
             Exception: If apt update fails
         """
         cmd = Command(executable="apt-get", args=["update"])
-        await self.system.run_exclusive(cmd)
+        await run_exclusive(self.system, cmd)
 
     async def _install_package(self, package: str) -> None:
         """Install a single package.
@@ -73,7 +74,7 @@ class DebHandler:
             Exception: If installation fails
         """
         cmd = Command(executable="apt-get", args=["install", "-y", package])
-        await self.system.run_exclusive(cmd)
+        await run_exclusive(self.system, cmd)
 
         logger.info("Installed apt package", package=package)
 
@@ -87,6 +88,6 @@ class DebHandler:
             Exception: If removal fails
         """
         cmd = Command(executable="apt-get", args=["remove", "-y", package])
-        await self.system.run_exclusive(cmd)
+        await run_exclusive(self.system, cmd)
 
         logger.info("Removed apt package", package=package)

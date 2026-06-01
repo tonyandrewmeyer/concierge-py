@@ -2,6 +2,7 @@
 
 from concierge.core.logging import get_logger
 from concierge.system.command import Command
+from concierge.system.helpers import run_exclusive
 from concierge.system.models import Snap
 from concierge.system.worker import Worker
 
@@ -63,7 +64,7 @@ class SnapHandler:
             # A disabled snap must be enabled before it can be refreshed.
             if not snap_info.active:
                 enable_cmd = Command(executable="snap", args=["enable", snap.name])
-                await self.system.run_exclusive(enable_cmd)
+                await run_exclusive(self.system, enable_cmd)
                 logger.info("Enabled disabled snap", snap=snap.name)
             action = "refresh"
             log_action = "Refreshed"
@@ -85,7 +86,7 @@ class SnapHandler:
 
         # Execute command
         cmd = Command(executable="snap", args=args)
-        await self.system.run_exclusive(cmd)
+        await run_exclusive(self.system, cmd)
 
         logger.info(f"{log_action} snap", snap=snap.name)
 
@@ -107,7 +108,7 @@ class SnapHandler:
             args = ["connect", *parts]
 
             cmd = Command(executable="snap", args=args)
-            await self.system.run_exclusive(cmd)
+            await run_exclusive(self.system, cmd)
 
     async def _remove_snap(self, snap: Snap) -> None:
         """Remove a snap from the system.
@@ -123,6 +124,6 @@ class SnapHandler:
         args = ["remove", snap.name, "--purge"]
         cmd = Command(executable="snap", args=args)
 
-        await self.system.run_exclusive(cmd)
+        await run_exclusive(self.system, cmd)
 
         logger.info("Removed snap", snap=snap.name)
