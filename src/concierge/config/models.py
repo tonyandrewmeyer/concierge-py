@@ -192,3 +192,4 @@ class ConciergeConfig(BaseModel):
     status: Status = Status.PROVISIONING
     verbose: bool = False
     trace: bool = False
+    dry_run: bool = Field(False, alias="dry-run")

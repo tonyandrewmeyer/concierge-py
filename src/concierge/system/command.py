@@ -20,6 +20,7 @@ class Command:
     args: list[str] = field(default_factory=list)
     user: str = ""
     group: str = ""
+    read_only: bool = False
 
     @property
     def full_command(self) -> list[str]:
