@@ -2,7 +2,7 @@
 
 This file tracks synchronization status with [canonical/concierge](https://github.com/canonical/concierge) (the Go implementation).
 
-**Last sync check:** 2026-05-31
+**Last sync check:** 2026-06-07
 **Baseline:** concierge-py created 2024-10-10, syncing changes after that date
 
 ## Pending Changes
@@ -79,5 +79,6 @@ These changes don't apply to the Python implementation:
 - `0b54dd0` - SECURITY.md PGP key update — concierge-py does not have a `SECURITY.md`
 - `d6548eb` - Viper nil-value workaround (Viper is Go-specific; Python uses Pydantic)
 - `e904ac9`, `600fdca` - Release-time secscan / SBOM workflows for the Go binary
-- `c3f5a01`, `25e26be`, `54cc160` - Go toolchain version bumps
-- Various Go dependency bumps and GitHub Action version bumps (`43771aa`, `3ee502c`, `defca86`, `9c4a90b`, `cf9537c`, `c549727`, `aeda3bc`, `90530f3`, `ef54599`, `3d81a68`)
+- `c3f5a01`, `25e26be`, `54cc160`, `0b0c130` - Go toolchain version bumps
+- `3ef5241` - Add 386/armhf/riscv64 targets to `.goreleaser.yaml` (Python wheels don't use goreleaser)
+- Various Go dependency bumps and GitHub Action version bumps (`43771aa`, `3ee502c`, `defca86`, `9c4a90b`, `cf9537c`, `c549727`, `aeda3bc`, `90530f3`, `ef54599`, `3d81a68`, `1978fec`, `47e975c`, `9997760`)
