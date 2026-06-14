@@ -2,7 +2,7 @@
 
 This file tracks synchronization status with [canonical/concierge](https://github.com/canonical/concierge) (the Go implementation).
 
-**Last sync check:** 2026-06-07
+**Last sync check:** 2026-06-14
 **Baseline:** concierge-py created 2024-10-10, syncing changes after that date
 
 ## Pending Changes
@@ -23,6 +23,8 @@ All changes have been ported. See branches below for PRs.
 | [#19](https://github.com/tonyandrewmeyer/concierge-py/pull/19) | `fix/containerd-pre-bootstrap-only` | `0ddf24c` | Only remove /run/containerd if we need to bootstrap k8s |
 | [#20](https://github.com/tonyandrewmeyer/concierge-py/pull/20) | `fix/disabled-snap-handling` | `86b1b21` | Treat non-active installed snaps as installed |
 | [#21](https://github.com/tonyandrewmeyer/concierge-py/pull/21) | `feat/juju-snap-revision` | `2f64cda` | Allow specifying a Juju snap revision |
+| [#25](https://github.com/tonyandrewmeyer/concierge-py/pull/25) | `ci/conventional-pr-title-local-script` | `814f3a6` | Replace third-party PR-title action with a local Python script |
+| [#26](https://github.com/tonyandrewmeyer/concierge-py/pull/26) | `ci/dependency-review-action` | `4fd2092` | Add dependency-review-action on PRs |
 
 ### Previously Merged
 
@@ -78,6 +80,7 @@ These changes don't apply to the Python implementation:
 - `00e4e48` - Dependabot cooldown tailored to Go's dependency stream
 - `0b54dd0` - SECURITY.md PGP key update — concierge-py does not have a `SECURITY.md`
 - `d6548eb` - Viper nil-value workaround (Viper is Go-specific; Python uses Pydantic)
+- `89a3728` - Replace `cmdMu` + `map[string]*sync.Mutex` with `sync.Map.LoadOrStore` in `RunExclusive`, plus comments documenting Go pflag `Get*` error discards. The Go change is a Coverity-finding refactor with no behavioural change; Python's `run_exclusive` already uses an `asyncio.Lock` + dict pattern that is idiomatic and equivalent, and the pflag comments have no analogue in Typer-based code.
 - `e904ac9`, `600fdca` - Release-time secscan / SBOM workflows for the Go binary
 - `c3f5a01`, `25e26be`, `54cc160`, `0b0c130` - Go toolchain version bumps
 - `3ef5241` - Add 386/armhf/riscv64 targets to `.goreleaser.yaml` (Python wheels don't use goreleaser)
