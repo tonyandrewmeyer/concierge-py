@@ -2,7 +2,7 @@
 
 This file tracks synchronization status with [canonical/concierge](https://github.com/canonical/concierge) (the Go implementation).
 
-**Last sync check:** 2026-06-14
+**Last sync check:** 2026-06-21
 **Baseline:** concierge-py created 2024-10-10, syncing changes after that date
 
 ## Pending Changes
@@ -25,6 +25,7 @@ All changes have been ported. See branches below for PRs.
 | [#21](https://github.com/tonyandrewmeyer/concierge-py/pull/21) | `feat/juju-snap-revision` | `2f64cda` | Allow specifying a Juju snap revision |
 | [#25](https://github.com/tonyandrewmeyer/concierge-py/pull/25) | `ci/conventional-pr-title-local-script` | `814f3a6` | Replace third-party PR-title action with a local Python script |
 | [#26](https://github.com/tonyandrewmeyer/concierge-py/pull/26) | `ci/dependency-review-action` | `4fd2092` | Add dependency-review-action on PRs |
+| [#28](https://github.com/tonyandrewmeyer/concierge-py/pull/28) | `ci/dependency-review-no-pr-comment` | `d8ca796` | Drop PR-comment summary from dependency-review workflow |
 
 ### Previously Merged
 
