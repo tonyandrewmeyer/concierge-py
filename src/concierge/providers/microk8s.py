@@ -86,8 +86,8 @@ class MicroK8s:
             self.snaps[0].channel = self.channel
 
         await self._install()
-        await self._configure_image_registry()
         await self._init()
+        await self._configure_image_registry()
         await self._enable_addons()
         await self._enable_non_root_user_control()
         await self._setup_kubectl()
@@ -172,8 +172,13 @@ class MicroK8s:
         cmd = Command(executable="microk8s", args=["start"])
         await self.system.run(cmd)
 
+        # Wait for services to come back up before downstream commands run.
+        await self._init()
+
     async def _init(self) -> None:
-        """Initialize MicroK8s and wait for ready state.
+        """Wait for MicroK8s to be ready.
+
+        May be called more than once, to re-synchronise after stop/start.
 
         Raises:
             Exception: If initialization fails
