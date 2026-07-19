@@ -238,7 +238,11 @@ class JujuHandler:
         group = provider.group_name()
         cmd = Command(executable="juju", args=args, user=username, group=group)
 
-        await run_with_retries(self.system, cmd, 5 * 60 * 1000)  # 5 minutes in ms
+        # `juju bootstrap` can take 10+ minutes per attempt to fail on a slow
+        # runner (controller pod takes time to expose its API), so a 5-minute
+        # retry budget elapses inside the first attempt and we never retry.
+        # Use a 30-minute budget so a transient failure gets a real second go.
+        await run_with_retries(self.system, cmd, 30 * 60 * 1000)
 
         # Create testing model
         cmd = Command(
