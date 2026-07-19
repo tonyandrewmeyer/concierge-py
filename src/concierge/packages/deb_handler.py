@@ -7,6 +7,21 @@ from concierge.system.worker import Worker
 
 logger = get_logger(__name__)
 
+# Environment variables that prevent apt/dpkg (and tools hooked into them,
+# such as needrestart) from blocking on interactive prompts during unattended
+# package operations. Without these, `apt-get install` can hang forever on a
+# needrestart "which services should be restarted?" dialog, a debconf question,
+# or a dpkg conffile conflict prompt.
+_APT_ENV = [
+    "DEBIAN_FRONTEND=noninteractive",
+    "NEEDRESTART_MODE=a",
+]
+
+
+def _apt_command(*args: str) -> Command:
+    """Build an apt-get command that runs non-interactively."""
+    return Command(executable="apt-get", args=["-y", *args], env=list(_APT_ENV))
+
 
 class DebHandler:
     """Handler for managing Debian packages via apt.
@@ -52,7 +67,7 @@ class DebHandler:
             await self._remove_package(package)
 
         # Clean up unused dependencies
-        cmd = Command(executable="apt-get", args=["autoremove", "-y"])
+        cmd = _apt_command("autoremove")
         await run_exclusive(self.system, cmd)
 
     async def _update_apt_cache(self) -> None:
@@ -61,7 +76,7 @@ class DebHandler:
         Raises:
             Exception: If apt update fails
         """
-        cmd = Command(executable="apt-get", args=["update"])
+        cmd = _apt_command("update")
         await run_exclusive(self.system, cmd)
 
     async def _install_package(self, package: str) -> None:
@@ -73,7 +88,17 @@ class DebHandler:
         Raises:
             Exception: If installation fails
         """
-        cmd = Command(executable="apt-get", args=["install", "-y", package])
+        # Force dpkg to keep the existing conffile on conflict (--force-confold)
+        # unless there's a newer default (--force-confdef), so conffile conflicts
+        # never prompt.
+        cmd = _apt_command(
+            "install",
+            "-o",
+            "Dpkg::Options::=--force-confdef",
+            "-o",
+            "Dpkg::Options::=--force-confold",
+            package,
+        )
         await run_exclusive(self.system, cmd)
 
         logger.info("Installed apt package", package=package)
@@ -87,7 +112,7 @@ class DebHandler:
         Raises:
             Exception: If removal fails
         """
-        cmd = Command(executable="apt-get", args=["remove", "-y", package])
+        cmd = _apt_command("remove", package)
         await run_exclusive(self.system, cmd)
 
         logger.info("Removed apt package", package=package)

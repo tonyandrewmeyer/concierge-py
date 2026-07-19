@@ -14,6 +14,10 @@ class Command:
         args: Arguments to pass to the executable
         user: Optional user to run the command as (via sudo)
         group: Optional group to run the command as (via sudo)
+        env: Extra environment variables, in "KEY=value" form, that are set
+            for the command. Rendered as assignments immediately preceding the
+            executable, which works both for plain shell invocations and for
+            commands run via `sudo` (sudo accepts leading `VAR=value` args).
     """
 
     executable: str
@@ -21,6 +25,7 @@ class Command:
     user: str = ""
     group: str = ""
     read_only: bool = False
+    env: list[str] = field(default_factory=list)
 
     @property
     def full_command(self) -> list[str]:
@@ -45,6 +50,13 @@ class Command:
 
             if self.group:
                 cmd.extend(["-g", self.group])
+
+        # Environment assignments render as unquoted `KEY=value` tokens. shlex
+        # only quotes when a character outside its safe set appears; `=` is in
+        # the set, so plain "KEY=value" strings pass through unchanged. A
+        # quoted word containing `=` would be parsed by the shell as a command
+        # name, not an assignment.
+        cmd.extend(self.env)
 
         cmd.append(executable_path)
         cmd.extend(self.args)
