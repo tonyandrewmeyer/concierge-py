@@ -2,7 +2,7 @@
 
 This file tracks synchronization status with [canonical/concierge](https://github.com/canonical/concierge) (the Go implementation).
 
-**Last sync check:** 2026-06-28
+**Last sync check:** 2026-07-19
 **Baseline:** concierge-py created 2024-10-10, syncing changes after that date
 
 ## Pending Changes
@@ -28,6 +28,10 @@ All changes have been ported. See branches below for PRs.
 | [#28](https://github.com/tonyandrewmeyer/concierge-py/pull/28) | `ci/dependency-review-no-pr-comment` | `d8ca796` | Drop PR-comment summary from dependency-review workflow |
 | [#30](https://github.com/tonyandrewmeyer/concierge-py/pull/30) | `fix/microk8s-image-registry-race` | `c1ed8cf` | Wait for MicroK8s to settle before configuring image registry |
 | [#31](https://github.com/tonyandrewmeyer/concierge-py/pull/31) | `chore/rename-zizmor-yaml` | `049b39a` | Rename `.github/zizmor.yml` to `.github/zizmor.yaml` |
+| [#33](https://github.com/tonyandrewmeyer/concierge-py/pull/33) | `fix/juju-bootstrap-timeout` | `1ece296` | Lift juju bootstrap retry budget and bootstrap-timeout default |
+| [#34](https://github.com/tonyandrewmeyer/concierge-py/pull/34) | `fix/k8s-restore-image-registry-credentials` | `854e572` | K8s restore removes image-registry credentials from disk |
+| [#35](https://github.com/tonyandrewmeyer/concierge-py/pull/35) | `fix/apt-non-interactive` | `a116b65` | Run apt operations non-interactively so prepare cannot hang on prompts |
+| [#36](https://github.com/tonyandrewmeyer/concierge-py/pull/36) | `feat/security-event-logging` | `f958bd5` | Add SEC0045 OWASP security event logging |
 
 ### Previously Merged
 
@@ -53,6 +57,8 @@ All changes have been ported. See branches below for PRs.
 | `6307920` | Merge provider credentials instead of overwriting | Python `build_credentials_yaml` already sets per-cloud keys on the inner map rather than replacing it |
 | `5b915d8` | Fall back to getent for users not in /etc/passwd | Python's `pwd.getpwnam` calls libc and already consults NSS (SSSD/LDAP) on systems where it's configured |
 | `f7b67a7` | Drop logs to trace if an error is expected | Python's runner only prints command output when `--trace` is set, so expected failures are already silenced by default |
+| `6c8b60c` | Add Code of Conduct linking to Ubuntu CoC | concierge-py already ships a Contributor Covenant `CODE_OF_CONDUCT.md`; the upstream stylistic swap to the Ubuntu link is a Charm Tech alignment change and not a behavioural port |
+| `09181e5` | Attest release artifacts via `actions/attest-build-provenance` | `.github/workflows/publish.yaml` already runs `actions/attest-build-provenance@v3` against the built PyPI distributions |
 
 ## Previously Implemented
 
@@ -85,6 +91,13 @@ These changes don't apply to the Python implementation:
 - `d6548eb` - Viper nil-value workaround (Viper is Go-specific; Python uses Pydantic)
 - `89a3728` - Replace `cmdMu` + `map[string]*sync.Mutex` with `sync.Map.LoadOrStore` in `RunExclusive`, plus comments documenting Go pflag `Get*` error discards. The Go change is a Coverity-finding refactor with no behavioural change; Python's `run_exclusive` already uses an `asyncio.Lock` + dict pattern that is idiomatic and equivalent, and the pflag comments have no analogue in Typer-based code.
 - `e904ac9`, `600fdca` - Release-time secscan / SBOM workflows for the Go binary
-- `c3f5a01`, `25e26be`, `54cc160`, `0b0c130` - Go toolchain version bumps
+- `c3f5a01`, `25e26be`, `54cc160`, `0b0c130`, `785cf2a` - Go toolchain version bumps
 - `3ef5241` - Add 386/armhf/riscv64 targets to `.goreleaser.yaml` (Python wheels don't use goreleaser)
-- Various Go dependency bumps and GitHub Action version bumps (`43771aa`, `3ee502c`, `defca86`, `9c4a90b`, `cf9537c`, `c549727`, `aeda3bc`, `90530f3`, `ef54599`, `3d81a68`, `1978fec`, `47e975c`, `9997760`)
+- `606b004` - Charm Tech OP0xx dependabot conventions (rename `.yml`→`.yaml`, `gomod` groups) — needs human review: concierge-py's dependabot config already has its own pip/github-actions structure with cooldowns and grouping, and the Go-lane spec doesn't map cleanly to Python's pip lane
+- `87eab71` - Hash-pin all third-party actions and drop `zizmor.yaml` — needs human review: concierge-py hash-pins some actions (`setup-uv`, `actions/checkout@v4.3.1` in `zizmor.yaml`) but not others, and dropping the local zizmor policy needs a repo-wide audit first
+- `a83e010` - Drop `.github/copilot-instructions.md`, fold key rules into `AGENTS.md` — concierge-py has `CLAUDE.md` instead of `AGENTS.md`/`copilot-instructions.md`, so there is nothing to swap in
+- `03414956` - Drop `cooldown.semver-major-days` from the `github-actions` dependabot block — concierge-py's `github-actions` block does not carry that field, so there is nothing to drop
+- `c0a08551` - Replace `fatih/color` with stdlib ANSI (Go dependency reduction, no behavioural change)
+- `1d576fa` - Pin `extra-packages` spread test snap channels to `latest/stable` (Go spread integration test only, no unit-test analogue)
+- `5de3283` - Replace viper with Canonical's YAML loader (Python uses Pydantic/PyYAML, not viper)
+- Various Go dependency bumps and GitHub Action version bumps (`43771aa`, `3ee502c`, `defca86`, `9c4a90b`, `cf9537c`, `c549727`, `aeda3bc`, `90530f3`, `ef54599`, `3d81a68`, `1978fec`, `47e975c`, `9997760`, `4ddfab5`, `e1db0f7`, `e1d3560`, `2415af7`, `81a3d92`, `059f929`)
