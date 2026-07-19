@@ -81,6 +81,8 @@ class K8s:
         # Remove kubeconfig
         await self.system.remove_path(self.system.home_dir() / ".kube")
 
+        await self._restore_image_registry()
+
         # Restore containerd if we stopped it during prepare
         await self._restore_containerd()
 
@@ -266,6 +268,29 @@ class K8s:
             args=["-c", f"cat > {hosts_path} << 'HOSTS_EOF'\n{hosts_config}HOSTS_EOF"],
         )
         await self.system.run(cmd)
+
+    async def _restore_image_registry(self) -> None:
+        """Remove the containerd hosts.d configuration written during prepare.
+
+        The k8s snap uses host paths under `/etc/containerd/hosts.d/` that are
+        not cleared when the snap is removed, so credentials embedded in
+        `hosts.toml` would otherwise persist on disk after `concierge restore`.
+        Failures are logged as warnings — restore has already done the heavy
+        lifting and we should not fail it over a stray file.
+        """
+        if not self._image_registry.url:
+            return
+
+        hosts_dir = Path("/etc/containerd/hosts.d/docker.io")
+        logger.debug("Removing image registry configuration", path=str(hosts_dir))
+        try:
+            await self.system.remove_path(hosts_dir)
+        except Exception as e:
+            logger.warning(
+                "Failed to remove image registry configuration",
+                path=str(hosts_dir),
+                error=str(e),
+            )
 
     async def _restore_containerd(self) -> None:
         """Restore containerd service if it was stopped during prepare."""
