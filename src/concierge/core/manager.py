@@ -4,6 +4,7 @@ from pathlib import Path
 
 import yaml
 
+from concierge import securitylog
 from concierge.config.models import ConciergeConfig, Status
 from concierge.core.logging import get_logger
 from concierge.core.plan import Plan
@@ -42,6 +43,17 @@ class Manager:
         Raises:
             Exception: If preparation fails
         """
+        # Record the start of the machine provisioning lifecycle. Skipped in
+        # dry-run mode, where no real changes are made.
+        if not self._dry_run:
+            securitylog.emit(
+                securitylog.EVENT_SYS_STARTUP,
+                securitylog.user_id(),
+                "machine provisioning started",
+                action="prepare",
+                user=self.system.username(),
+            )
+
         try:
             await self._execute("prepare")
             await self._record_runtime_config(Status.SUCCEEDED)
@@ -55,6 +67,17 @@ class Manager:
         Raises:
             Exception: If restoration fails
         """
+        # Record the start of machine decommissioning. Skipped in dry-run
+        # mode, where no real changes are made.
+        if not self._dry_run:
+            securitylog.emit(
+                securitylog.EVENT_SYS_SHUTDOWN,
+                securitylog.user_id(),
+                "machine restoration started",
+                action="restore",
+                user=self.system.username(),
+            )
+
         await self._load_runtime_config()
         await self._execute("restore")
 
