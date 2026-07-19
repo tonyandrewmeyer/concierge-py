@@ -148,3 +148,15 @@ class TestPresetContents:
                     f"Snap '{snap_name}' in preset '{preset_name}' has explicit channel "
                     f"'{snap_config.channel}' - snapd should decide the default"
                 )
+
+    def test_k8s_presets_pin_bootstrap_timeout(self) -> None:
+        """The k8s presets pin `bootstrap-timeout=1800` so slow CI runners don't fail.
+
+        Juju's default 20-minute bootstrap timeout is too short for the controller
+        pod to expose its API on busy GHA hosts.
+        """
+        for preset_name in ["k8s", "microk8s"]:
+            config = get_preset(preset_name)
+            assert "--config bootstrap-timeout=1800" in config.juju.extra_bootstrap_args, (
+                f"Preset '{preset_name}' is missing --config bootstrap-timeout=1800"
+            )
