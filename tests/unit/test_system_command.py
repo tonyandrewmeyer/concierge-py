@@ -142,6 +142,35 @@ class TestCommand:
         assert "juju" in cmd.command_string
         assert "bootstrap lxd controller --config test-mode=true" in cmd.command_string
 
+    def test_command_string_with_env(self) -> None:
+        """Env vars render as unquoted `KEY=value` before the executable.
+
+        A quoted word containing `=` is treated by the shell as a command
+        name, not an assignment, so the tokens MUST stay unquoted.
+        """
+        cmd = Command(
+            executable="apt-get",
+            args=["install", "-y", "cowsay"],
+            env=["DEBIAN_FRONTEND=noninteractive", "NEEDRESTART_MODE=a"],
+        )
+        assert cmd.command_string.startswith("DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a ")
+        # The env assignments must not be single-quoted.
+        assert "'DEBIAN_FRONTEND=noninteractive'" not in cmd.command_string
+        assert "install -y cowsay" in cmd.command_string
+
+    def test_command_string_with_env_and_sudo(self) -> None:
+        """Env assignments go after `sudo -u user` and before the executable."""
+        cmd = Command(
+            executable="apt-get",
+            args=["install", "-y", "cowsay"],
+            user="testuser",
+            env=["DEBIAN_FRONTEND=noninteractive"],
+        )
+        # sudo accepts leading VAR=value args; this form works after
+        # `sudo -u testuser` just as it does at the top of a shell command.
+        assert cmd.command_string.startswith("sudo -u testuser DEBIAN_FRONTEND=noninteractive ")
+        assert "'DEBIAN_FRONTEND=noninteractive'" not in cmd.command_string
+
     def test_command_equality(self) -> None:
         """Test that Command dataclasses can be compared for equality."""
         cmd1 = Command(executable="ls", args=["-l"], user="testuser")
