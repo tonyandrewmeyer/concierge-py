@@ -2,10 +2,12 @@
 
 import asyncio
 import os
+from importlib.metadata import PackageNotFoundError, version
 from typing import Annotated
 
 import typer
 
+from concierge import securitylog
 from concierge.cli.commands.prepare import run_prepare
 from concierge.cli.commands.restore import run_restore
 from concierge.cli.commands.status import run_status
@@ -22,6 +24,15 @@ app = typer.Typer(
 )
 
 
+def _appid() -> str:
+    """Build the SEC0045 appid string, embedding the installed package version."""
+    try:
+        pkg_version = version("concierge")
+    except PackageNotFoundError:
+        pkg_version = "unknown"
+    return f"concierge@{pkg_version}"
+
+
 @app.callback()
 def main(
     verbose: Annotated[bool, typer.Option("--verbose", "-v", help="Enable debug logging")] = False,
@@ -31,6 +42,13 @@ def main(
 ) -> None:
     """Concierge - Charm development environment provisioning."""
     setup_logging(verbose=verbose, trace=trace)
+
+    # Configure the SEC0045 security event logger so audit events carry the
+    # Concierge version in their appid. Events are emitted as structured JSON
+    # to the system journal via syslog(3), tagged "concierge", so the audit
+    # stream stays separate from Concierge's stderr; falls back to stderr if
+    # syslog is unreachable.
+    securitylog.configure_default(_appid())
 
 
 @app.command()

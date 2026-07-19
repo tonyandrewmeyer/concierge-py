@@ -14,6 +14,7 @@ from tenacity import (
     wait_exponential,
 )
 
+from concierge import securitylog
 from concierge.config.models import ConciergeConfig
 from concierge.core.logging import get_logger
 from concierge.juju.credentials import build_credentials_yaml
@@ -167,8 +168,17 @@ class JujuHandler:
         content = yaml.safe_dump(credentials_data, default_flow_style=False)
 
         # Write to credentials.yaml
-        await write_home_file(
-            self.system, Path(".local/share/juju/credentials.yaml"), content.encode("utf-8")
+        credentials_path = Path(".local/share/juju/credentials.yaml")
+        await write_home_file(self.system, credentials_path, content.encode("utf-8"))
+
+        # Record that cloud credentials were written. The credential contents
+        # are deliberately not included in the event.
+        securitylog.emit(
+            securitylog.EVENT_AUTHZ_ADMIN,
+            f"{securitylog.user_id()},write_credentials",
+            "wrote Juju cloud credentials file",
+            path=str(self.system.home_dir() / credentials_path),
+            clouds=len(credentials_data["credentials"]),
         )
 
     async def _bootstrap(self) -> None:
