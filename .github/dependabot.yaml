@@ -5,6 +5,8 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    cooldown:
+      default-days: 7  # Don't adopt a release until it's 7 days old.
     open-pull-requests-limit: 10
     groups:
       security-updates:
@@ -23,15 +25,14 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    cooldown:
+      default-days: 14  # Preserves the 14-day intent of the old (ignored) setting.
     open-pull-requests-limit: 5
     groups:
       minor-and-patch:
         update-types:
           - "minor"
           - "patch"
-        cooldown:
-          duration: 14
-          unit: "days"
     labels:
       - "dependencies"
     ignore:
@@ -44,6 +45,8 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    cooldown:
+      default-days: 7  # Don't adopt a release until it's 7 days old.
     open-pull-requests-limit: 5
     groups:
       actions-security:
