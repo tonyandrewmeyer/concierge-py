@@ -1,13 +1,15 @@
 """Google Cloud provider implementation."""
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
-from concierge.config.models import ConciergeConfig
 from concierge.core.logging import get_logger
-from concierge.system.worker import Worker
+
+if TYPE_CHECKING:
+    from concierge.config.models import ConciergeConfig
+    from concierge.system.worker import Worker
 
 logger = get_logger(__name__)
 

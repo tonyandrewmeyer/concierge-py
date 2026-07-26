@@ -4,6 +4,7 @@ import asyncio
 import platform
 import shlex
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import yaml
 from tenacity import (
@@ -15,15 +16,17 @@ from tenacity import (
 )
 
 from concierge import securitylog
-from concierge.config.models import ConciergeConfig
 from concierge.core.logging import get_logger
 from concierge.juju.credentials import build_credentials_yaml
 from concierge.packages.snap_handler import SnapHandler
-from concierge.providers.base import Provider
 from concierge.system.command import Command, CommandError
 from concierge.system.helpers import mk_home_subdir, run_with_retries, write_home_file
 from concierge.system.models import Snap
-from concierge.system.worker import Worker
+
+if TYPE_CHECKING:
+    from concierge.config.models import ConciergeConfig
+    from concierge.providers.base import Provider
+    from concierge.system.worker import Worker
 
 logger = get_logger(__name__)
 

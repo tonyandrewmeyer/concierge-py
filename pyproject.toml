@@ -23,7 +23,7 @@ dev = [
     "pytest-asyncio>=0.23.0",
     "pytest-cov>=4.1.0",
     "ty>=0.0.1a34",
-    "ruff>=0.2.0",
+    "ruff>=0.16.0",
 ]
 
 [project.scripts]
@@ -44,28 +44,6 @@ python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"
 
-[tool.ruff]
-line-length = 100
-target-version = "py314"
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "N", "UP", "ANN", "S", "B", "A", "C4", "DTZ", "T10", "ISC", "ICN", "PIE", "PT", "RET", "SIM", "ARG", "PTH", "PD", "PGH", "PL", "TRY", "NPY", "RUF"]
-ignore = [
-    "ANN401",    # Allow Any type annotations
-    "PLR0913",   # Allow many function arguments (CLI commands)
-    "PLR0912",   # Allow many branches in functions
-    "PLR2004",   # Allow magic values in comparisons
-    "TRY003",    # Allow long exception messages
-    "TRY004",    # Allow ValueError instead of TypeError for type checks
-    "TRY300",    # Allow return in try block
-    "TRY301",    # Allow raising in conditionals
-    "TRY400",    # Allow logging.error instead of logging.exception
-    "TRY002",    # Allow raising Exception instead of custom exceptions
-]
-
-[tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101", "S105", "S106"]  # Allow assert usage and hardcoded test passwords in tests
-
 [dependency-groups]
 dev = [
     "pytest>=9.0.2",
@@ -73,3 +51,57 @@ dev = [
     "pytest-cov>=7.0.0",
     "zizmor>=1.19.0",
 ]
+
+[tool.ruff]
+line-length = 99
+target-version = "py314"
+
+[tool.ruff.lint]
+select = [
+    "F",
+    "E",
+    "W",
+    "I",
+    "N",
+    "A",
+    "UP",
+    "YTT",
+    "S",
+    "B",
+    "SIM",
+    "RUF",
+    "PERF",
+    "D",
+    "FA",
+    "TC",
+]
+ignore = [
+    "D105",
+    "D107",
+    "D203",
+    "D204",
+    "D213",
+    "D215",
+    "D400",
+    "D404",
+    "D406",
+    "D407",
+    "D408",
+    "D409",
+    "D413",
+    "ANN401",
+    "PLR0913",
+    "PLR0912",
+    "PLR2004",
+    "TRY003",
+    "TRY004",
+    "TRY300",
+    "TRY301",
+    "TRY400",
+    "TRY002",
+    # Method docstrings are not mandated; module/class/function docs are.
+    "D102",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["S101", "S105", "S106", "S108", "PLR2004", "ARG", "SLF001", "N802", "N803", "N806", "D"]

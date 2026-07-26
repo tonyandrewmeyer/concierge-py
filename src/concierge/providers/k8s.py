@@ -3,9 +3,8 @@
 import asyncio
 import shutil
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from concierge.config.models import ConciergeConfig
 from concierge.core.logging import get_logger
 from concierge.packages.deb_handler import DebHandler
 from concierge.packages.snap_handler import SnapHandler
@@ -13,7 +12,10 @@ from concierge.providers.registry import build_hosts_toml
 from concierge.system.command import Command, CommandError
 from concierge.system.helpers import run_with_retries, write_home_file
 from concierge.system.models import Snap
-from concierge.system.worker import Worker
+
+if TYPE_CHECKING:
+    from concierge.config.models import ConciergeConfig
+    from concierge.system.worker import Worker
 
 logger = get_logger(__name__)
 
@@ -201,7 +203,7 @@ class K8s:
             await run_with_retries(self.system, cmd, 5 * 60 * 1000)  # 5 minutes in ms
 
     async def _setup_kubectl(self) -> None:
-        """Setup kubectl configuration for K8s.
+        """Set up kubectl configuration for K8s.
 
         Raises:
             Exception: If kubectl setup fails

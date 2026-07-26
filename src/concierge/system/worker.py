@@ -1,10 +1,12 @@
 """Worker protocol for system operations."""
 
-from pathlib import Path
-from typing import Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Protocol, runtime_checkable
 
-from concierge.system.command import Command
-from concierge.system.models import SnapInfo
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from concierge.system.command import Command
+    from concierge.system.models import SnapInfo
 
 
 @runtime_checkable

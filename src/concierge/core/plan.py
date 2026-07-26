@@ -1,17 +1,20 @@
 """Plan for executing Concierge operations."""
 
 import asyncio
+from typing import TYPE_CHECKING
 
-from concierge.config.models import ConciergeConfig
-from concierge.core.executable import Executable
 from concierge.core.logging import get_logger
 from concierge.juju.handler import JujuHandler
 from concierge.packages.deb_handler import DebHandler
 from concierge.packages.snap_handler import SnapHandler
-from concierge.providers.base import Provider
 from concierge.providers.factory import SUPPORTED_PROVIDERS, create_provider
 from concierge.system.models import Snap
-from concierge.system.worker import Worker
+
+if TYPE_CHECKING:
+    from concierge.config.models import ConciergeConfig
+    from concierge.core.executable import Executable
+    from concierge.providers.base import Provider
+    from concierge.system.worker import Worker
 
 logger = get_logger(__name__)
 

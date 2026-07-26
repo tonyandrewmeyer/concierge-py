@@ -6,12 +6,15 @@ import pwd
 import shutil
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from concierge import securitylog
 from concierge.core.logging import get_logger
 from concierge.system.command import Command, CommandError
-from concierge.system.models import SnapInfo
 from concierge.system.snap import SnapdClient
+
+if TYPE_CHECKING:
+    from concierge.system.models import SnapInfo
 
 logger = get_logger(__name__)
 

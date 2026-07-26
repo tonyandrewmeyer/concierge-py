@@ -1,12 +1,16 @@
 """Factory for creating provider instances."""
 
-from concierge.config.models import ConciergeConfig
-from concierge.providers.base import Provider
+from typing import TYPE_CHECKING
+
 from concierge.providers.google import Google
 from concierge.providers.k8s import K8s
 from concierge.providers.lxd import LXD
 from concierge.providers.microk8s import MicroK8s
-from concierge.system.worker import Worker
+
+if TYPE_CHECKING:
+    from concierge.config.models import ConciergeConfig
+    from concierge.providers.base import Provider
+    from concierge.system.worker import Worker
 
 SUPPORTED_PROVIDERS = ["lxd", "microk8s", "k8s", "google"]
 

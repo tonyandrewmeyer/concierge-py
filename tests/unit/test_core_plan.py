@@ -293,7 +293,9 @@ class TestPlanExecute:
             assert any(
                 call[0][0] == mock_snap_handler and call[0][1] == "prepare" for call in calls
             )
-            assert any(call[0][0] == mock_deb_handler and call[0][1] == "prepare" for call in calls)
+            assert any(
+                call[0][0] == mock_deb_handler and call[0][1] == "prepare" for call in calls
+            )
 
     @pytest.mark.asyncio
     async def test_execute_restore(self) -> None:

@@ -1,11 +1,14 @@
 """Unit tests for the DebHandler."""
 
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from concierge.packages.deb_handler import DebHandler
-from concierge.system.command import Command
+
+if TYPE_CHECKING:
+    from concierge.system.command import Command
 
 APT_ENV_PREFIX = "DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a"
 

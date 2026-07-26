@@ -1,6 +1,7 @@
 """Manager for orchestrating Concierge operations."""
 
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import yaml
 
@@ -11,7 +12,9 @@ from concierge.core.plan import Plan
 from concierge.system.dryrun import DryRunWorker
 from concierge.system.helpers import read_home_file, write_home_file
 from concierge.system.runner import System
-from concierge.system.worker import Worker
+
+if TYPE_CHECKING:
+    from concierge.system.worker import Worker
 
 logger = get_logger(__name__)
 
@@ -23,7 +26,9 @@ class Manager:
     and managing the prepare/restore lifecycle.
     """
 
-    def __init__(self, config: ConciergeConfig, trace: bool = False, dry_run: bool = False) -> None:
+    def __init__(
+        self, config: ConciergeConfig, trace: bool = False, dry_run: bool = False
+    ) -> None:
         """Initialize the Manager.
 
         Args:

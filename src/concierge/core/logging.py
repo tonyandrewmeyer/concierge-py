@@ -1,11 +1,13 @@
 """Logging configuration for Concierge using stdlib logging with rich."""
 
 import logging
-from collections.abc import MutableMapping
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from rich.console import Console
 from rich.logging import RichHandler
+
+if TYPE_CHECKING:
+    from collections.abc import MutableMapping
 
 
 class StructuredLoggerAdapter(logging.LoggerAdapter):

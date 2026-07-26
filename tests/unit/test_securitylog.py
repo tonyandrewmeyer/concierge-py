@@ -5,11 +5,14 @@ from __future__ import annotations
 import io
 import json
 import re
-from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import pytest
 
 from concierge import securitylog
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 
 @pytest.fixture(autouse=True)
