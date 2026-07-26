@@ -2,12 +2,14 @@
 
 import base64
 import os
-
-import pytest
+from typing import TYPE_CHECKING
 
 from concierge.config.loader import _expand_env_vars
 from concierge.config.models import ConciergeConfig, ImageRegistryConfig
 from concierge.providers.registry import build_hosts_toml
+
+if TYPE_CHECKING:
+    import pytest
 
 
 class TestImageRegistryConfig:

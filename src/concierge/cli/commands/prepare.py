@@ -1,9 +1,13 @@
 """Prepare command implementation."""
 
+from typing import TYPE_CHECKING
+
 from concierge.config.loader import load_config
-from concierge.config.models import ConfigOverrides
 from concierge.core.logging import get_logger
 from concierge.core.manager import Manager
+
+if TYPE_CHECKING:
+    from concierge.config.models import ConfigOverrides
 
 logger = get_logger(__name__)
 
@@ -21,6 +25,7 @@ async def run_prepare(
         config_file: Path to configuration file
         preset: Preset name to use
         overrides: Configuration overrides from CLI/env
+        dry_run: Log the planned actions without applying them
     """
     logger.info("Starting environment preparation")
 

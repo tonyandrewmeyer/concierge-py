@@ -1,10 +1,13 @@
 """Unit tests for system command models."""
 
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
 from concierge.system.command import Command, CommandError
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestCommand:

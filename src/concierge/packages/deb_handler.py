@@ -1,9 +1,13 @@
 """Debian package handler for installing and managing apt packages."""
 
+from typing import TYPE_CHECKING
+
 from concierge.core.logging import get_logger
 from concierge.system.command import Command
 from concierge.system.helpers import run_exclusive
-from concierge.system.worker import Worker
+
+if TYPE_CHECKING:
+    from concierge.system.worker import Worker
 
 logger = get_logger(__name__)
 

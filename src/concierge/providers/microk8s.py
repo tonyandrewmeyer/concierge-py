@@ -1,16 +1,18 @@
 """MicroK8s provider implementation."""
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from concierge.config.models import ConciergeConfig
 from concierge.core.logging import get_logger
 from concierge.packages.snap_handler import SnapHandler
 from concierge.providers.registry import build_hosts_toml
 from concierge.system.command import Command
 from concierge.system.helpers import run_with_retries, write_home_file
 from concierge.system.models import Snap
-from concierge.system.worker import Worker
+
+if TYPE_CHECKING:
+    from concierge.config.models import ConciergeConfig
+    from concierge.system.worker import Worker
 
 logger = get_logger(__name__)
 
@@ -214,7 +216,7 @@ class MicroK8s:
         await self.system.run(cmd)
 
     async def _setup_kubectl(self) -> None:
-        """Setup kubectl configuration for MicroK8s.
+        """Set up kubectl configuration for MicroK8s.
 
         Raises:
             Exception: If kubectl setup fails

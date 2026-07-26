@@ -1,8 +1,9 @@
 """Juju credentials management."""
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from concierge.providers.base import Provider
+if TYPE_CHECKING:
+    from concierge.providers.base import Provider
 
 
 def build_credentials_yaml(providers: list[Provider]) -> dict[str, Any]:

@@ -1,12 +1,15 @@
 """Unit tests for the SnapHandler."""
 
+from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from concierge.packages.snap_handler import SnapHandler
-from concierge.system.command import Command
 from concierge.system.models import Snap, SnapInfo
+
+if TYPE_CHECKING:
+    from concierge.system.command import Command
 
 
 def _make_handler(snap: Snap, snap_info: SnapInfo) -> tuple[SnapHandler, MagicMock]:

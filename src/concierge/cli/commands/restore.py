@@ -13,6 +13,7 @@ async def run_restore(config_file: str, preset: str, *, dry_run: bool = False) -
     Args:
         config_file: Path to configuration file
         preset: Preset name to use
+        dry_run: Log the planned actions without applying them
     """
     logger.info("Starting environment restoration")
 

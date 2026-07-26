@@ -1,6 +1,5 @@
 """Snapd HTTP API client for querying snap information."""
 
-from collections.abc import Awaitable, Callable
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -17,6 +16,8 @@ from concierge.core.logging import get_logger
 from concierge.system.models import SnapInfo
 
 if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
+
     from concierge.system.runner import System
 
 logger = get_logger(__name__)

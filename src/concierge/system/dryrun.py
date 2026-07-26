@@ -1,12 +1,14 @@
 """Dry-run worker that prints commands without executing them."""
 
 import sys
-from pathlib import Path
-from typing import TextIO
+from typing import TYPE_CHECKING, TextIO
 
-from concierge.system.command import Command
-from concierge.system.models import SnapInfo
-from concierge.system.worker import Worker
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from concierge.system.command import Command
+    from concierge.system.models import SnapInfo
+    from concierge.system.worker import Worker
 
 
 class DryRunWorker:
@@ -35,7 +37,7 @@ class DryRunWorker:
     async def read_file(self, filepath: Path) -> bytes:
         return await self._real.read_file(filepath)
 
-    async def write_file(self, filepath: Path, contents: bytes) -> None:  # noqa: ARG002
+    async def write_file(self, filepath: Path, contents: bytes) -> None:
         print(f"# Write file: {filepath}", file=self._out)
 
     async def mkdir_all(self, dirpath: Path) -> None:

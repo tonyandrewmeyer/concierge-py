@@ -1,7 +1,7 @@
 """Standalone helper functions built on top of the Worker protocol."""
 
 import asyncio
-from pathlib import Path
+from typing import TYPE_CHECKING
 
 from tenacity import (
     AsyncRetrying,
@@ -12,7 +12,11 @@ from tenacity import (
 )
 
 from concierge.system.command import Command, CommandError
-from concierge.system.worker import Worker
+
+if TYPE_CHECKING:
+    from pathlib import Path
+
+    from concierge.system.worker import Worker
 
 # Guards access to _cmd_locks.
 _lock_guard = asyncio.Lock()

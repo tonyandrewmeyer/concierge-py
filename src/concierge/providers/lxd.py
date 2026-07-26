@@ -1,14 +1,16 @@
 """LXD provider implementation."""
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from concierge.config.models import ConciergeConfig
 from concierge.core.logging import get_logger
 from concierge.packages.snap_handler import SnapHandler
 from concierge.system.command import Command
 from concierge.system.helpers import run_exclusive
 from concierge.system.models import Snap
-from concierge.system.worker import Worker
+
+if TYPE_CHECKING:
+    from concierge.config.models import ConciergeConfig
+    from concierge.system.worker import Worker
 
 logger = get_logger(__name__)
 

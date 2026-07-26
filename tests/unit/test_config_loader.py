@@ -1,7 +1,7 @@
 """Unit tests for configuration loader."""
 
 import os
-from pathlib import Path
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -14,6 +14,9 @@ from concierge.config.loader import (
     load_config,
 )
 from concierge.config.models import ConciergeConfig, ConfigOverrides, SnapConfig
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class TestLoadFromFile:
