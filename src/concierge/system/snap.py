@@ -25,6 +25,22 @@ logger = get_logger(__name__)
 SNAPD_SOCKET = Path("/run/snapd.socket")
 
 
+class SnapdAPIError(Exception):
+    """Raised when the snapd API returns a non-successful status code."""
+
+    def __init__(self, message: str, status_code: int) -> None:
+        super().__init__(message)
+        self.status_code = status_code
+
+
+class SnapNotFoundError(Exception):
+    """Raised when a snap is not found in the snap store."""
+
+
+class SnapNotInstalledError(Exception):
+    """Raised when a snap is not installed on the system."""
+
+
 class SnapdClient:
     """Client for interacting with the snapd HTTP API via Unix socket."""
 
@@ -111,24 +127,18 @@ class SnapdClient:
         """
         try:
             snap_data = await self._get_snap(snap_name)
-
-            if snap_data:
-                status = snap_data.get("status")
-                if status in ("active", "installed"):
-                    tracking_channel = snap_data.get("tracking-channel", "")
-                    if not tracking_channel:
-                        tracking_channel = snap_data.get("channel", "")
-                    return True, status == "active", tracking_channel
-
+        except SnapNotInstalledError:
             return False, False, ""
 
-        except Exception as e:
-            # If snap is not installed, the API returns an error
-            error_msg = str(e).lower()
-            if "snap not installed" in error_msg or "not found" in error_msg:
-                return False, False, ""
-            # For other errors, re-raise
-            raise
+        if snap_data:
+            status = snap_data.get("status")
+            if status in ("active", "installed"):
+                tracking_channel = snap_data.get("tracking-channel", "")
+                if not tracking_channel:
+                    tracking_channel = snap_data.get("channel", "")
+                return True, status == "active", tracking_channel
+
+        return False, False, ""
 
     async def _snap_is_classic(self, snap_name: str, channel: str) -> bool:
         """Check if snap uses classic confinement.
@@ -170,7 +180,12 @@ class SnapdClient:
         """
 
         async def _attempt() -> dict[str, Any]:
-            result = await self._request("GET", f"/v2/snaps/{snap_name}")
+            try:
+                result = await self._request("GET", f"/v2/snaps/{snap_name}")
+            except SnapdAPIError as e:
+                if e.status_code == 404:
+                    raise SnapNotInstalledError(f"snap not installed: {snap_name}") from e
+                raise
             if not isinstance(result, dict):
                 raise ValueError(f"Unexpected response type: {type(result)}")
             return result
@@ -191,7 +206,12 @@ class SnapdClient:
         """
 
         async def _attempt() -> dict[str, Any]:
-            result = await self._request("GET", f"/v2/find?name={snap_name}")
+            try:
+                result = await self._request("GET", f"/v2/find?name={snap_name}")
+            except SnapdAPIError as e:
+                if e.status_code == 404:
+                    raise SnapNotFoundError(f"snap not found: {snap_name}") from e
+                raise
 
             if isinstance(result, list) and len(result) > 0:
                 # Find exact match
@@ -201,7 +221,7 @@ class SnapdClient:
                 # If no exact match, return first result
                 return result[0]
 
-            raise ValueError(f"Snap '{snap_name}' not found in store")
+            raise SnapNotFoundError(f"snap not found: {snap_name}")
 
         return await self._with_retry(_attempt)
 
@@ -232,9 +252,10 @@ class SnapdClient:
         ):
             response_data = await response.json()
 
-            if response_data.get("status-code") != 200:
+            status_code = response_data.get("status-code", 0)
+            if status_code != 200:
                 error_msg = response_data.get("result", {}).get("message", "Unknown error")
-                raise Exception(f"Snapd API error: {error_msg}")
+                raise SnapdAPIError(f"Snapd API error: {error_msg}", status_code)
 
             return response_data.get("result")
 
@@ -255,7 +276,8 @@ class SnapdClient:
             """Determine if an exception should trigger a retry.
 
             Returns:
-                False for permanent failures like "snap not installed" or "not found"
+                False for permanent failures like the snap being missing from the
+                store or not installed on the system.
             """
             if retry_state.outcome is None:
                 return True
@@ -264,17 +286,8 @@ class SnapdClient:
             if exception is None:
                 return False
 
-            error_str = str(exception).lower()
-            # Don't retry on expected/permanent errors
-            return not any(
-                msg in error_str
-                for msg in [
-                    "snap not installed",
-                    "not found",
-                    "snap not available",
-                    "invalid",
-                ]
-            )
+            # Don't retry on expected/permanent errors surfaced via typed sentinels.
+            return not isinstance(exception, (SnapNotInstalledError, SnapNotFoundError))
 
         try:
             async for attempt in AsyncRetrying(
