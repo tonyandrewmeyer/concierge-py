@@ -2,7 +2,7 @@
 
 This file tracks synchronization status with [canonical/concierge](https://github.com/canonical/concierge) (the Go implementation).
 
-**Last sync check:** 2026-08-02
+**Last sync check:** 2026-08-23
 **Baseline:** concierge-py created 2024-10-10, syncing changes after that date
 
 ## Pending Changes
@@ -32,6 +32,7 @@ All changes have been ported. See branches below for PRs.
 | [#34](https://github.com/tonyandrewmeyer/concierge-py/pull/34) | `fix/k8s-restore-image-registry-credentials` | `854e572` | K8s restore removes image-registry credentials from disk |
 | [#35](https://github.com/tonyandrewmeyer/concierge-py/pull/35) | `fix/apt-non-interactive` | `a116b65` | Run apt operations non-interactively so prepare cannot hang on prompts |
 | [#36](https://github.com/tonyandrewmeyer/concierge-py/pull/36) | `feat/security-event-logging` | `f958bd5` | Add SEC0045 OWASP security event logging |
+| [#41](https://github.com/tonyandrewmeyer/concierge-py/pull/41) | `refactor/snapd-sentinel-errors` | `487700e` | Use sentinel errors instead of matching on error strings |
 
 ### Previously Merged
 
