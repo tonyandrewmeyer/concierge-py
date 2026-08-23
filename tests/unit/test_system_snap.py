@@ -1,7 +1,6 @@
 """Unit tests for the SnapdClient sentinel error handling."""
 
-from collections.abc import Awaitable, Callable
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -12,6 +11,9 @@ from concierge.system.snap import (
     SnapNotFoundError,
     SnapNotInstalledError,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Awaitable, Callable
 
 
 async def _passthrough[T](func: Callable[[], Awaitable[T]]) -> T:
