@@ -28,9 +28,8 @@ Installs LXD, K8s (MicroK8s or Canonical K8s), Juju, and development tools.
 ## Development Workflow
 
 1. Use `uv` for all package operations (not pip directly)
-2. Run `uv venv` to create virtual environment
-3. Run `uv pip install -e ".[dev]"` to install with dev dependencies
-4. All code must pass: ruff format, ruff check, ty, pytest
+2. Run `uv sync` to create the virtual environment and install the project with its dev dependency group
+3. All code must pass: ruff format, ruff check, ty, pytest
 
 ## Code Style
 
