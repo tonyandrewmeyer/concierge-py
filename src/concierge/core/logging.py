@@ -1,13 +1,27 @@
-"""Logging configuration for Concierge using stdlib logging with rich."""
+"""Logging configuration for Concierge using the standard library logging module."""
 
 import logging
+import sys
 from typing import TYPE_CHECKING, Any
-
-from rich.console import Console
-from rich.logging import RichHandler
 
 if TYPE_CHECKING:
     from collections.abc import MutableMapping
+
+_TIME_FORMAT = "[%Y-%m-%d %H:%M:%S]"
+
+_RESET = "\033[0m"
+_DIM = "\033[2m"
+
+# Upstream's log/slog text handler is uncoloured, but concierge already writes raw ANSI
+# escapes when echoing commands (see system/runner.py), so a little colour to separate the
+# timestamp and level from the message is consistent with the rest of the tool.
+_LEVEL_COLOURS = {
+    logging.DEBUG: "\033[36m",
+    logging.INFO: "\033[32m",
+    logging.WARNING: "\033[33m",
+    logging.ERROR: "\033[31m",
+    logging.CRITICAL: "\033[1;31m",
+}
 
 
 class StructuredLoggerAdapter(logging.LoggerAdapter):
@@ -71,50 +85,68 @@ class StructuredLoggerAdapter(logging.LoggerAdapter):
         if context:
             context_items = [f"{k}={v}" for k, v in sorted(context.items())]
             context_str = " ".join(context_items)
-            msg = f"{msg} [dim][[/dim]{context_str}[dim]][/dim]"
+            msg = f"{msg} [{context_str}]"
 
         return msg, clean_kwargs
 
 
-def setup_logging(verbose: bool = False, trace: bool = False) -> None:
-    """Configure structured logging with rich integration.
+class ConsoleFormatter(logging.Formatter):
+    """Formatter rendering records as `[timestamp] LEVEL message`, optionally coloured.
 
-    This function sets up the logging system with rich's RichHandler for
-    colored output, timestamps, and enhanced exception formatting.
+    Args:
+        show_path: Append the module name and line number to each record.
+        colour: Wrap the timestamp and level name in ANSI escapes.
+    """
+
+    def __init__(self, *, show_path: bool = False, colour: bool = False) -> None:
+        super().__init__(datefmt=_TIME_FORMAT)
+        self.show_path = show_path
+        self.colour = colour
+
+    # Named _colourise rather than _style because logging.Formatter._style is the
+    # percent/brace formatting strategy object it uses internally.
+    def _colourise(self, text: str, style: str) -> str:
+        return f"{style}{text}{_RESET}" if self.colour else text
+
+    def format(self, record: logging.LogRecord) -> str:
+        """Render a single log record as a line of text."""
+        level_colour = _LEVEL_COLOURS.get(record.levelno, "")
+        parts = [
+            self._colourise(self.formatTime(record, self.datefmt), _DIM),
+            self._colourise(f"{record.levelname:<8}", level_colour),
+            record.getMessage(),
+        ]
+        if self.show_path:
+            parts.append(self._colourise(f"{record.module}:{record.lineno}", _DIM))
+        line = " ".join(parts)
+
+        # Exception and stack text are appended the same way the base class does it, so
+        # that a cached exc_text from another handler is reused rather than recomputed.
+        if record.exc_info and not record.exc_text:
+            record.exc_text = self.formatException(record.exc_info)
+        if record.exc_text:
+            line = f"{line}\n{record.exc_text}"
+        if record.stack_info:
+            line = f"{line}\n{self.formatStack(record.stack_info)}"
+
+        return line
+
+
+def setup_logging(verbose: bool = False, trace: bool = False) -> None:
+    """Configure structured logging on stderr.
 
     Args:
         verbose: Enable debug logging
         trace: Enable trace logging (most verbose)
     """
-    # Determine log level based on flags
-    if trace:
-        log_level = logging.DEBUG  # Use DEBUG for trace (most verbose)
-    elif verbose:
-        log_level = logging.DEBUG
-    else:
-        log_level = logging.INFO
+    # There is no level below DEBUG in the standard library, so trace only differs from
+    # verbose in showing the module and line number of each record.
+    log_level = logging.DEBUG if verbose or trace else logging.INFO
 
-    # Configure rich console for stderr output
-    console = Console(stderr=True, force_terminal=True)
+    handler = logging.StreamHandler(stream=sys.stderr)
+    handler.setFormatter(ConsoleFormatter(show_path=trace, colour=sys.stderr.isatty()))
 
-    # Create rich handler with desired formatting
-    handler = RichHandler(
-        console=console,
-        show_time=True,  # Show timestamps
-        show_path=trace,  # Show module and line number in trace mode
-        markup=True,  # Enable rich markup in messages
-        rich_tracebacks=True,  # Enhanced exception rendering
-        tracebacks_show_locals=verbose or trace,  # Show local vars in verbose/trace mode
-        log_time_format="[%Y-%m-%d %H:%M:%S]",
-    )
-
-    # Configure root logger
-    logging.basicConfig(
-        level=log_level,
-        format="%(message)s",
-        handlers=[handler],
-        force=True,
-    )
+    logging.basicConfig(level=log_level, handlers=[handler], force=True)
 
 
 def get_logger(name: str = "") -> StructuredLoggerAdapter:
