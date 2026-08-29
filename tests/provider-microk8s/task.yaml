@@ -79,5 +79,25 @@ debug: |
   free -m || true
   df -h / || true
 
+  echo "===== kernel and confinement ====="
+  # The pods all fail with `socket: permission denied`, i.e. the socket()
+  # syscall itself returns EPERM inside the container. That's an LSM denial
+  # against the strictly-confined MicroK8s snap, so find out which one.
+  uname -a || true
+  sysctl kernel.apparmor_restrict_unprivileged_userns || true
+  sysctl kernel.unprivileged_userns_clone || true
+  snap version || true
+  snap list || true
+  aa-status --summary || aa-status | head -n 20 || true
+
+  echo "===== AppArmor and audit denials ====="
+  dmesg -T 2>/dev/null | grep -iE "apparmor|audit|denied|seccomp" | tail -n 60 || true
+  journalctl -k --no-pager --since '-30 min' 2>/dev/null |
+    grep -iE "apparmor|audit|denied|seccomp" | tail -n 60 || true
+
+  echo "===== confinement on a failing pod ====="
+  timeout 60 microk8s kubectl get pod -n kube-system -l k8s-app=kube-dns \
+    -o yaml 2>/dev/null | grep -iE "apparmor|seccomp|securityContext|privileged|runAs" || true
+
   echo "===== microk8s daemon journal ====="
   journalctl -u 'snap.microk8s.*' --no-pager --since '-30 min' | tail -n 100 || true
