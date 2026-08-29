@@ -28,3 +28,29 @@ restore: |
   if [[ -z "${CI:-}" ]]; then
     "$SPREAD_PATH"/concierge --trace restore
   fi
+
+debug: |
+  # `microk8s enable metallb` hangs here but not upstream, and the failure
+  # output only tells us which command was running, so dump enough state to
+  # see what it was actually waiting on. Everything is time-limited because
+  # a wedged cluster makes these hang too.
+  echo "===== process tree ====="
+  ps auxf || true
+
+  echo "===== microk8s status ====="
+  timeout 60 microk8s status || true
+
+  echo "===== nodes ====="
+  timeout 60 microk8s kubectl get nodes -o wide || true
+
+  echo "===== all resources ====="
+  timeout 60 microk8s kubectl get all -A || true
+
+  echo "===== recent events ====="
+  timeout 60 microk8s kubectl get events -A --sort-by=.lastTimestamp | tail -n 50 || true
+
+  echo "===== metallb pods ====="
+  timeout 60 microk8s kubectl describe pods -n metallb-system || true
+
+  echo "===== microk8s daemon journal ====="
+  journalctl -u 'snap.microk8s.*' --no-pager --since '-30 min' | tail -n 100 || true
