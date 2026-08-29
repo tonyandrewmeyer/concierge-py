@@ -52,5 +52,31 @@ debug: |
   echo "===== metallb pods ====="
   timeout 60 microk8s kubectl describe pods -n metallb-system || true
 
+  echo "===== logs from pods that aren't running ====="
+  # The kubelet journal only says a container is backing off, never why it
+  # exited, so go to the container's own output. `--previous` is the crashed
+  # instance rather than the one waiting to start.
+  timeout 120 microk8s kubectl get pods -A \
+    --field-selector=status.phase!=Running \
+    -o 'jsonpath={range .items[*]}{.metadata.namespace} {.metadata.name}{"\n"}{end}' |
+    while read -r ns pod; do
+      [ -n "$pod" ] || continue
+      echo "----- $ns/$pod (previous) -----"
+      timeout 60 microk8s kubectl logs -n "$ns" "$pod" --previous --all-containers --tail=50 || true
+      echo "----- $ns/$pod (current) -----"
+      timeout 60 microk8s kubectl logs -n "$ns" "$pod" --all-containers --tail=50 || true
+    done
+
+  echo "===== resolv.conf ====="
+  # CoreDNS kills itself when its `loop` plugin sees a forwarding loop, which
+  # is what a stub resolver at 127.0.0.53 gives you.
+  cat /etc/resolv.conf || true
+  cat /run/systemd/resolve/resolv.conf || true
+
+  echo "===== host resources ====="
+  nproc || true
+  free -m || true
+  df -h / || true
+
   echo "===== microk8s daemon journal ====="
   journalctl -u 'snap.microk8s.*' --no-pager --since '-30 min' | tail -n 100 || true
