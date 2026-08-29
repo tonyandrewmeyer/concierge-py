@@ -52,13 +52,14 @@ debug: |
   echo "===== metallb pods ====="
   timeout 60 microk8s kubectl describe pods -n metallb-system || true
 
-  echo "===== logs from pods that aren't running ====="
+  echo "===== logs from unready pods ====="
   # The kubelet journal only says a container is backing off, never why it
   # exited, so go to the container's own output. `--previous` is the crashed
-  # instance rather than the one waiting to start.
+  # instance rather than the one waiting to start. Don't select on
+  # `status.phase`: a pod in CrashLoopBackOff still reports `Running`, so
+  # filter on the containers' ready flags instead.
   timeout 120 microk8s kubectl get pods -A \
-    --field-selector=status.phase!=Running \
-    -o 'jsonpath={range .items[*]}{.metadata.namespace} {.metadata.name}{"\n"}{end}' |
+    -o 'jsonpath={range .items[?(@.status.containerStatuses[*].ready==false)]}{.metadata.namespace} {.metadata.name}{"\n"}{end}' |
     while read -r ns pod; do
       [ -n "$pod" ] || continue
       echo "----- $ns/$pod (previous) -----"
