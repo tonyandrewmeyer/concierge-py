@@ -9,7 +9,7 @@ execute: |
 
   list="$(snap list microk8s)"
   echo $list | MATCH microk8s
-  echo $list | MATCH 1.31-strict/stable
+  echo $list | MATCH 1.36-strict/stable
 
   list="$(snap list)"
   echo $list | MATCH juju
@@ -28,3 +28,76 @@ restore: |
   if [[ -z "${CI:-}" ]]; then
     "$SPREAD_PATH"/concierge --trace restore
   fi
+
+debug: |
+  # `microk8s enable metallb` hangs here but not upstream, and the failure
+  # output only tells us which command was running, so dump enough state to
+  # see what it was actually waiting on. Everything is time-limited because
+  # a wedged cluster makes these hang too.
+  echo "===== process tree ====="
+  ps auxf || true
+
+  echo "===== microk8s status ====="
+  timeout 60 microk8s status || true
+
+  echo "===== nodes ====="
+  timeout 60 microk8s kubectl get nodes -o wide || true
+
+  echo "===== all resources ====="
+  timeout 60 microk8s kubectl get all -A || true
+
+  echo "===== recent events ====="
+  timeout 60 microk8s kubectl get events -A --sort-by=.lastTimestamp | tail -n 50 || true
+
+  echo "===== metallb pods ====="
+  timeout 60 microk8s kubectl describe pods -n metallb-system || true
+
+  echo "===== logs from unready pods ====="
+  # The kubelet journal only says a container is backing off, never why it
+  # exited, so go to the container's own output. `--previous` is the crashed
+  # instance rather than the one waiting to start. Don't select on
+  # `status.phase`: a pod in CrashLoopBackOff still reports `Running`, so
+  # filter on the containers' ready flags instead.
+  timeout 120 microk8s kubectl get pods -A \
+    -o 'jsonpath={range .items[?(@.status.containerStatuses[*].ready==false)]}{.metadata.namespace} {.metadata.name}{"\n"}{end}' |
+    while read -r ns pod; do
+      [ -n "$pod" ] || continue
+      echo "----- $ns/$pod (previous) -----"
+      timeout 60 microk8s kubectl logs -n "$ns" "$pod" --previous --all-containers --tail=50 || true
+      echo "----- $ns/$pod (current) -----"
+      timeout 60 microk8s kubectl logs -n "$ns" "$pod" --all-containers --tail=50 || true
+    done
+
+  echo "===== resolv.conf ====="
+  # CoreDNS kills itself when its `loop` plugin sees a forwarding loop, which
+  # is what a stub resolver at 127.0.0.53 gives you.
+  cat /etc/resolv.conf || true
+  cat /run/systemd/resolve/resolv.conf || true
+
+  echo "===== host resources ====="
+  nproc || true
+  free -m || true
+  df -h / || true
+
+  echo "===== kernel and confinement ====="
+  # The pods all fail with `socket: permission denied`, i.e. the socket()
+  # syscall itself returns EPERM inside the container. That's an LSM denial
+  # against the strictly-confined MicroK8s snap, so find out which one.
+  uname -a || true
+  sysctl kernel.apparmor_restrict_unprivileged_userns || true
+  sysctl kernel.unprivileged_userns_clone || true
+  snap version || true
+  snap list || true
+  aa-status --summary || aa-status | head -n 20 || true
+
+  echo "===== AppArmor and audit denials ====="
+  dmesg -T 2>/dev/null | grep -iE "apparmor|audit|denied|seccomp" | tail -n 60 || true
+  journalctl -k --no-pager --since '-30 min' 2>/dev/null |
+    grep -iE "apparmor|audit|denied|seccomp" | tail -n 60 || true
+
+  echo "===== confinement on a failing pod ====="
+  timeout 60 microk8s kubectl get pod -n kube-system -l k8s-app=kube-dns \
+    -o yaml 2>/dev/null | grep -iE "apparmor|seccomp|securityContext|privileged|runAs" || true
+
+  echo "===== microk8s daemon journal ====="
+  journalctl -u 'snap.microk8s.*' --no-pager --since '-30 min' | tail -n 100 || true
