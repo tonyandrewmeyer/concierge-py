@@ -41,8 +41,11 @@ class Command:
 
         cmd: list[str] = []
 
-        # Add sudo prefix if user or group is specified
-        if (self.user or self.group) and self.user != "root":
+        # Add sudo prefix if user or group is specified. This happens even when
+        # the user is root: concierge already runs as root, so `sudo -u root` is
+        # a no-op on its own, but dropping it would also drop the `-g` that goes
+        # with it and leave the command in the wrong supplementary groups.
+        if self.user or self.group:
             cmd.append("sudo")
 
             if self.user:
