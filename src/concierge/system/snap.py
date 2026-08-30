@@ -1,9 +1,12 @@
 """Snapd HTTP API client for querying snap information."""
 
+import asyncio
+import http.client
+import json
+import socket
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-import aiohttp
 from tenacity import (
     AsyncRetrying,
     RetryCallState,
@@ -23,6 +26,32 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 SNAPD_SOCKET = Path("/run/snapd.socket")
+
+SNAPD_TIMEOUT = 30
+
+
+class _UnixSocketHTTPConnection(http.client.HTTPConnection):
+    """An `http.client` connection that speaks HTTP over an `AF_UNIX` socket.
+
+    snapd listens on a Unix socket rather than a TCP port, so only the socket
+    path is meaningful and the host name exists purely to satisfy the `Host`
+    header. Upstream Go concierge does the same thing by handing `net/http` a
+    custom unix `DialContext`.
+    """
+
+    def __init__(self, socket_path: str, timeout: float) -> None:
+        super().__init__("localhost", timeout=timeout)
+        self.socket_path = socket_path
+
+    def connect(self) -> None:
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        sock.settimeout(self.timeout)
+        try:
+            sock.connect(self.socket_path)
+        except OSError:
+            sock.close()
+            raise
+        self.sock = sock
 
 
 class SnapdAPIError(Exception):
@@ -225,6 +254,37 @@ class SnapdClient:
 
         return await self._with_retry(_attempt)
 
+    def _request_sync(self, method: str, endpoint: str) -> Any:
+        """Make a blocking HTTP request to the snapd API.
+
+        Args:
+            method: HTTP method (GET, POST, etc.)
+            endpoint: API endpoint path
+
+        Returns:
+            Response data from the 'result' field
+
+        Raises:
+            SnapdAPIError: If the response body reports a non-200 status code
+        """
+        conn = _UnixSocketHTTPConnection(str(self.socket_path), SNAPD_TIMEOUT)
+        try:
+            conn.request(method, endpoint)
+            body = conn.getresponse().read()
+        finally:
+            conn.close()
+
+        # snapd reports its own status in the body, so the body is parsed for
+        # error responses too rather than keying off the HTTP status line.
+        response_data = json.loads(body)
+
+        status_code = response_data.get("status-code", 0)
+        if status_code != 200:
+            error_msg = response_data.get("result", {}).get("message", "Unknown error")
+            raise SnapdAPIError(f"Snapd API error: {error_msg}", status_code)
+
+        return response_data.get("result")
+
     async def _request(self, method: str, endpoint: str) -> Any:
         """Make an HTTP request to the snapd API.
 
@@ -241,23 +301,9 @@ class SnapdClient:
         if not self.socket_path.exists():
             raise FileNotFoundError(f"Snapd socket not found at {self.socket_path}")
 
-        url = f"http://localhost{endpoint}"
-
-        connector = aiohttp.UnixConnector(path=str(self.socket_path))
-        timeout = aiohttp.ClientTimeout(total=30)
-
-        async with (
-            aiohttp.ClientSession(connector=connector, timeout=timeout) as session,
-            session.request(method, url) as response,
-        ):
-            response_data = await response.json()
-
-            status_code = response_data.get("status-code", 0)
-            if status_code != 200:
-                error_msg = response_data.get("result", {}).get("message", "Unknown error")
-                raise SnapdAPIError(f"Snapd API error: {error_msg}", status_code)
-
-            return response_data.get("result")
+        # `http.client` is blocking, so it is driven from a worker thread to
+        # keep the event loop free while snapd answers.
+        return await asyncio.to_thread(self._request_sync, method, endpoint)
 
     async def _with_retry[T](self, func: Callable[[], Awaitable[T]]) -> T:
         """Execute a function with retry logic.

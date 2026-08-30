@@ -1,5 +1,10 @@
-"""Unit tests for the SnapdClient sentinel error handling."""
+"""Unit tests for the SnapdClient sentinel error handling and Unix socket transport."""
 
+import contextlib
+import http.server
+import json
+import socketserver
+import threading
 from typing import TYPE_CHECKING, Any
 from unittest.mock import AsyncMock
 
@@ -13,7 +18,8 @@ from concierge.system.snap import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Awaitable, Callable
+    from collections.abc import Awaitable, Callable, Iterator
+    from pathlib import Path
 
 
 async def _passthrough[T](func: Callable[[], Awaitable[T]]) -> T:
@@ -201,3 +207,161 @@ class TestRetry:
             await client._with_retry(_attempt)
 
         assert calls == 1
+
+
+@contextlib.contextmanager
+def _snapd_server(
+    socket_path: Path,
+    routes: dict[str, tuple[int, dict[str, Any]]],
+) -> Iterator[None]:
+    """Serve canned snapd JSON over a Unix socket, as snapd itself does."""
+
+    class Handler(http.server.BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.0"
+
+        def do_GET(self) -> None:
+            status, payload = routes[self.path]
+            body = json.dumps(payload).encode()
+            self.send_response(status)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, fmt: str, *args: Any) -> None:
+            # The default implementation writes every request to stderr.
+            pass
+
+        def address_string(self) -> str:
+            # A Unix peer has no address, so the base implementation would
+            # index an empty string and raise.
+            return "unix"
+
+    server = socketserver.ThreadingUnixStreamServer(str(socket_path), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    try:
+        yield
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
+
+class TestUnixSocketTransport:
+    """`_request` speaks HTTP to snapd over its Unix socket."""
+
+    @pytest.mark.asyncio
+    async def test_installed_snap(self, tmp_path: Path) -> None:
+        socket_path = tmp_path / "snapd.socket"
+        routes = {
+            "/v2/snaps/juju": (
+                200,
+                {
+                    "type": "sync",
+                    "status-code": 200,
+                    "result": {
+                        "name": "juju",
+                        "status": "active",
+                        "tracking-channel": "3/stable",
+                    },
+                },
+            ),
+        }
+
+        with _snapd_server(socket_path, routes):
+            client = SnapdClient(socket_path)
+            result = await client._request("GET", "/v2/snaps/juju")
+            installed, active, tracking = await client._snap_installed_info("juju")
+
+        assert result == {"name": "juju", "status": "active", "tracking-channel": "3/stable"}
+        assert (installed, active, tracking) == (True, True, "3/stable")
+
+    @pytest.mark.asyncio
+    async def test_find_keeps_channels_map(self, tmp_path: Path) -> None:
+        socket_path = tmp_path / "snapd.socket"
+        routes = {
+            "/v2/find?name=juju": (
+                200,
+                {
+                    "type": "sync",
+                    "status-code": 200,
+                    "result": [
+                        {
+                            "name": "juju",
+                            "confinement": "classic",
+                            "channels": {
+                                "latest/stable": {"confinement": "classic"},
+                                "3/stable": {"confinement": "classic"},
+                            },
+                        },
+                    ],
+                },
+            ),
+        }
+
+        with _snapd_server(socket_path, routes):
+            client = SnapdClient(socket_path)
+            channels = await client.snap_channels("juju")
+            classic = await client._snap_is_classic("juju", "3/stable")
+
+        assert channels == ["latest/stable", "3/stable"]
+        assert classic is True
+
+    @pytest.mark.asyncio
+    async def test_404_body(self, tmp_path: Path) -> None:
+        socket_path = tmp_path / "snapd.socket"
+        routes = {
+            "/v2/snaps/nope": (
+                404,
+                {
+                    "type": "error",
+                    "status-code": 404,
+                    "result": {"message": 'snap "nope" not found', "kind": "snap-not-found"},
+                },
+            ),
+        }
+
+        with _snapd_server(socket_path, routes):
+            client = SnapdClient(socket_path)
+
+            with pytest.raises(SnapdAPIError) as request_error:
+                await client._request("GET", "/v2/snaps/nope")
+
+            with pytest.raises(SnapNotInstalledError):
+                await client._get_snap("nope")
+
+        assert request_error.value.status_code == 404
+        assert 'snap "nope" not found' in str(request_error.value)
+
+    @pytest.mark.asyncio
+    async def test_error_status_in_body(self, tmp_path: Path) -> None:
+        # snapd can answer HTTP 200 while reporting a failure in the body, so
+        # the body's status-code is what decides success.
+        socket_path = tmp_path / "snapd.socket"
+        routes = {
+            "/v2/snaps/juju": (
+                200,
+                {
+                    "type": "error",
+                    "status-code": 500,
+                    "result": {"message": "internal server error"},
+                },
+            ),
+        }
+
+        with _snapd_server(socket_path, routes):
+            client = SnapdClient(socket_path)
+
+            with pytest.raises(SnapdAPIError) as error:
+                await client._request("GET", "/v2/snaps/juju")
+
+        assert error.value.status_code == 500
+        assert "internal server error" in str(error.value)
+
+    @pytest.mark.asyncio
+    async def test_missing_socket(self, tmp_path: Path) -> None:
+        client = SnapdClient(tmp_path / "absent.socket")
+
+        with pytest.raises(FileNotFoundError):
+            await client._request("GET", "/v2/snaps/juju")

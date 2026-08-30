@@ -10,7 +10,7 @@ Installs LXD, K8s (MicroK8s or Canonical K8s), Juju, and development tools.
 - **CLI**: Typer-based command interface (src/concierge/cli/)
 - **Core**: Manager + Plan orchestration with asyncio (src/concierge/core/)
 - **Providers**: LXD, MicroK8s, K8s, Google Cloud implementations (src/concierge/providers/)
-- **Packages**: Snap and Deb handlers with aiohttp/snapd API (src/concierge/packages/)
+- **Packages**: Snap and Deb handlers with the snapd HTTP API (src/concierge/packages/)
 - **Juju**: Bootstrap and credential management (src/concierge/juju/)
 - **System**: Low-level command execution and workers (src/concierge/system/)
 
@@ -21,7 +21,7 @@ Installs LXD, K8s (MicroK8s or Canonical K8s), Juju, and development tools.
 - **Typer** for CLI with rich output
 - **Pydantic** for configuration validation
 - **structlog** for structured logging
-- **aiohttp** for snapd HTTP API communication
+- **http.client** (stdlib) over the snapd Unix socket for snapd HTTP API communication
 - **tenacity** for retry logic
 - **uv** for package management
 
