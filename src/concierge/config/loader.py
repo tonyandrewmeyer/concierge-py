@@ -91,7 +91,7 @@ def _load_from_file(path: Path) -> ConciergeConfig:
         if not isinstance(data, dict):
             raise ValueError("Configuration file must contain a YAML mapping")
 
-        return ConciergeConfig.model_validate(data)
+        return ConciergeConfig.from_dict(data)
 
     except yaml.YAMLError as e:
         raise ValueError(f"Invalid YAML in configuration file: {e}") from e

@@ -142,7 +142,7 @@ class Manager:
         self.config.status = status
 
         # Serialize config to YAML
-        config_dict = self.config.model_dump(mode="json", by_alias=True)
+        config_dict = self.config.to_dict()
         config_yaml = yaml.safe_dump(config_dict, default_flow_style=False)
 
         # Write to cache
@@ -164,7 +164,7 @@ class Manager:
         data = yaml.safe_load(contents)
 
         # Preserve CLI flags from current config
-        loaded_config = ConciergeConfig.model_validate(data)
+        loaded_config = ConciergeConfig.from_dict(data)
         loaded_config.dry_run = self.config.dry_run
         loaded_config.trace = self.config.trace
         loaded_config.verbose = self.config.verbose
