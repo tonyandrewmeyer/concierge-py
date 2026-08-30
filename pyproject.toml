@@ -10,7 +10,6 @@ authors = [
 ]
 dependencies = [
     "rich>=13.7.0",
-    "pydantic>=2.6.0",
     "pyyaml>=6.0",
 ]
 

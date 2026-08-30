@@ -13,7 +13,13 @@ from concierge.config.loader import (
     get_env_overrides,
     load_config,
 )
-from concierge.config.models import ConciergeConfig, ConfigOverrides, SnapConfig
+from concierge.config.models import (
+    ConciergeConfig,
+    ConfigOverrides,
+    HostConfig,
+    JujuConfig,
+    SnapConfig,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -139,7 +145,7 @@ class TestApplyOverrides:
     def test_charmcraft_channel_override_existing_snap(self) -> None:
         """Test that charmcraft_channel updates existing snap."""
         config = ConciergeConfig(
-            host={"snaps": {"charmcraft": SnapConfig(channel="latest/stable")}}
+            host=HostConfig(snaps={"charmcraft": SnapConfig(channel="latest/stable")})
         )
         overrides = ConfigOverrides(charmcraft_channel="latest/edge")
         _apply_overrides(config, overrides)
@@ -171,7 +177,9 @@ class TestApplyOverrides:
 
     def test_extra_snaps_does_not_override_existing(self) -> None:
         """Test that extra_snaps doesn't override existing snaps."""
-        config = ConciergeConfig(host={"snaps": {"snap1": SnapConfig(channel="latest/stable")}})
+        config = ConciergeConfig(
+            host=HostConfig(snaps={"snap1": SnapConfig(channel="latest/stable")})
+        )
         overrides = ConfigOverrides(extra_snaps=["snap1", "snap2"])
         _apply_overrides(config, overrides)
         # snap1 should keep its original channel
@@ -189,7 +197,7 @@ class TestApplyOverrides:
 
     def test_extra_debs_does_not_add_duplicates(self) -> None:
         """Test that extra_debs doesn't add duplicate packages."""
-        config = ConciergeConfig(host={"packages": ["pkg1"]})
+        config = ConciergeConfig(host=HostConfig(packages=["pkg1"]))
         overrides = ConfigOverrides(extra_debs=["pkg1", "pkg2"])
         _apply_overrides(config, overrides)
         # pkg1 should appear only once
@@ -215,7 +223,9 @@ class TestApplyOverrides:
 
     def test_empty_overrides_does_nothing(self) -> None:
         """Test that empty overrides don't modify config."""
-        config = ConciergeConfig(juju={"channel": "3.5/stable"}, host={"packages": ["git"]})
+        config = ConciergeConfig(
+            juju=JujuConfig(channel="3.5/stable"), host=HostConfig(packages=["git"])
+        )
         original_juju_channel = config.juju.channel
         original_packages = config.host.packages.copy()
 

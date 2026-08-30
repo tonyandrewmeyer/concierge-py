@@ -39,7 +39,7 @@ class TestImageRegistryConfig:
                 }
             }
         }
-        config = ConciergeConfig.model_validate(data)
+        config = ConciergeConfig.from_dict(data)
         assert config.providers.k8s.image_registry.url == "https://mirror.example.com"
 
 

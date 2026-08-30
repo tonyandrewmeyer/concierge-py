@@ -1,5 +1,6 @@
 """Built-in configuration presets for Concierge."""
 
+import copy
 from importlib import resources
 
 import yaml
@@ -15,7 +16,7 @@ def _load_all_presets() -> dict[str, ConciergeConfig]:
         if item.name.endswith(".yaml"):
             name = item.name.removesuffix(".yaml")
             data = yaml.safe_load(item.read_text())
-            presets[name] = ConciergeConfig.model_validate(data)
+            presets[name] = ConciergeConfig.from_dict(data)
     return presets
 
 
@@ -43,4 +44,4 @@ def get_preset(name: str) -> ConciergeConfig:
         raise ValueError(
             f"Unknown preset '{name}'. Available presets: {', '.join(PRESETS.keys())}"
         )
-    return PRESETS[name].model_copy(deep=True)
+    return copy.deepcopy(PRESETS[name])

@@ -1,10 +1,15 @@
 """Unit tests for configuration models."""
 
+from copy import deepcopy
+
+import yaml
+
 from concierge.config.models import (
     ConciergeConfig,
     ConfigOverrides,
     GoogleConfig,
     HostConfig,
+    ImageRegistryConfig,
     JujuConfig,
     K8sConfig,
     LXDConfig,
@@ -78,7 +83,7 @@ class TestJujuConfig:
 
     def test_alias_fields(self) -> None:
         """Test that aliased fields work correctly."""
-        config = JujuConfig.model_validate(
+        config = JujuConfig.from_dict(
             {
                 "disable": True,
                 "agent-version": "3.5.0",
@@ -94,8 +99,7 @@ class TestJujuConfig:
         assert config.extra_bootstrap_args == "--debug"
 
     def test_populate_by_name(self) -> None:
-        """Test that populate_by_name allows both names."""
-        # Using underscored name should also work
+        """Test that the underscored field names can be used directly."""
         config = JujuConfig(model_defaults={"test": "value"}, bootstrap_constraints={"cpu": "2"})
         assert config.model_defaults == {"test": "value"}
         assert config.bootstrap_constraints == {"cpu": "2"}
@@ -138,7 +142,7 @@ class TestGoogleConfig:
 
     def test_alias_credentials_file(self) -> None:
         """Test that credentials-file alias works."""
-        config = GoogleConfig.model_validate(
+        config = GoogleConfig.from_dict(
             {"enable": True, "credentials-file": "/path/to/creds.json"}
         )
         assert config.enable is True
@@ -288,13 +292,13 @@ class TestConciergeConfig:
         assert config.status == Status.SUCCEEDED
         assert config.verbose is True
 
-    def test_model_copy_deep(self) -> None:
-        """Test that model_copy(deep=True) creates independent copies."""
+    def test_deep_copy(self) -> None:
+        """Test that copy.deepcopy creates independent copies."""
         original = ConciergeConfig(
             juju=JujuConfig(model_defaults={"test": "value"}),
             host=HostConfig(packages=["pkg1"]),
         )
-        copy = original.model_copy(deep=True)
+        copy = deepcopy(original)
 
         # Modify the copy
         copy.juju.model_defaults["test"] = "changed"
@@ -307,14 +311,157 @@ class TestConciergeConfig:
         assert copy.host.packages == ["pkg1", "pkg2"]
 
     def test_validation_from_dict(self) -> None:
-        """Test creating ConciergeConfig from dict via model_validate."""
+        """Test creating ConciergeConfig from dict via from_dict."""
         data = {
             "juju": {"disable": True, "channel": "3.5/stable"},
             "providers": {"lxd": {"enable": True}},
             "host": {"packages": ["git"]},
         }
-        config = ConciergeConfig.model_validate(data)
+        config = ConciergeConfig.from_dict(data)
         assert config.juju.disable is True
         assert config.juju.channel == "3.5/stable"
         assert config.providers.lxd.enable is True
         assert config.host.packages == ["git"]
+
+
+class TestScalarCoercion:
+    """Tests for coercing the types PyYAML infers onto the types fields declare."""
+
+    def test_int_revision_becomes_string(self) -> None:
+        """An unquoted revision is parsed by PyYAML as an int, but must be stored as a string."""
+        config = JujuConfig.from_dict(yaml.safe_load("revision: 123"))
+        assert config.revision == "123"
+
+    def test_int_channel_becomes_string(self) -> None:
+        config = JujuConfig.from_dict(yaml.safe_load("channel: 3"))
+        assert config.channel == "3"
+
+    def test_float_channel_becomes_string(self) -> None:
+        config = K8sConfig.from_dict(yaml.safe_load("channel: 1.32"))
+        assert config.channel == "1.32"
+
+    def test_nested_string_values_are_coerced(self) -> None:
+        config = ConciergeConfig.from_dict(
+            yaml.safe_load(
+                """
+                juju:
+                  model-defaults:
+                    test-mode: true
+                providers:
+                  k8s:
+                    features:
+                      load-balancer:
+                        l2-mode: true
+                host:
+                  snaps:
+                    charmcraft:
+                      channel: 3
+                """
+            )
+        )
+        assert config.juju.model_defaults == {"test-mode": "true"}
+        assert config.providers.k8s.features == {"load-balancer": {"l2-mode": "true"}}
+        assert config.host.snaps["charmcraft"].channel == "3"
+
+    def test_string_booleans_are_coerced(self) -> None:
+        """A quoted boolean still enables the flag it is written against."""
+        config = LXDConfig.from_dict({"enable": "true", "bootstrap": "no"})
+        assert config.enable is True
+        assert config.bootstrap is False
+
+    def test_unknown_keys_are_ignored(self) -> None:
+        config = ConciergeConfig.from_dict({"juju": {"channel": "3.5/stable", "future": "x"}})
+        assert config.juju.channel == "3.5/stable"
+
+    def test_null_values_fall_back_to_defaults(self) -> None:
+        config = ConciergeConfig.from_dict(yaml.safe_load("juju:\nhost:\n  snaps:\n    jq:\n"))
+        assert config.juju == JujuConfig()
+        assert config.host.snaps == {"jq": SnapConfig()}
+
+    def test_null_k8s_feature_becomes_empty_options(self) -> None:
+        config = K8sConfig.from_dict(yaml.safe_load("features:\n  network:\n"))
+        assert config.features == {"network": {}}
+
+
+class TestRoundTrip:
+    """Tests for the cached runtime configuration written and read back during restore."""
+
+    def test_to_dict_uses_hyphenated_keys(self) -> None:
+        config = ConciergeConfig(
+            juju=JujuConfig(agent_version="3.5.0", extra_bootstrap_args="--debug"),
+            providers=ProviderConfig(
+                k8s=K8sConfig(image_registry=ImageRegistryConfig(url="https://mirror.example.com"))
+            ),
+            dry_run=True,
+        )
+        data = config.to_dict()
+        assert data["juju"]["agent-version"] == "3.5.0"
+        assert data["juju"]["extra-bootstrap-args"] == "--debug"
+        assert data["juju"]["model-defaults"] == {}
+        assert data["providers"]["k8s"]["image-registry"]["url"] == "https://mirror.example.com"
+        assert data["dry-run"] is True
+
+    def test_to_dict_is_safe_dumpable(self) -> None:
+        """The cached configuration is written with yaml.safe_dump, which rejects enums."""
+        config = ConciergeConfig(status=Status.SUCCEEDED)
+        dumped = yaml.safe_dump(config.to_dict())
+        assert yaml.safe_load(dumped)["status"] == "succeeded"
+
+    def test_round_trip_preserves_config(self) -> None:
+        config = ConciergeConfig(
+            juju=JujuConfig(channel="3.5/stable", model_defaults={"test-mode": "true"}),
+            providers=ProviderConfig(
+                lxd=LXDConfig(enable=True, bootstrap=True),
+                k8s=K8sConfig(enable=True, features={"network": {"enabled": "true"}}),
+            ),
+            host=HostConfig(
+                packages=["git"], snaps={"charmcraft": SnapConfig(channel="latest/edge")}
+            ),
+            overrides=ConfigOverrides(juju_channel="3.5/stable", extra_debs=["git"]),
+            status=Status.SUCCEEDED,
+            dry_run=True,
+        )
+        assert (
+            ConciergeConfig.from_dict(yaml.safe_load(yaml.safe_dump(config.to_dict()))) == config
+        )
+
+    def test_loads_cache_file_written_by_previous_versions(self) -> None:
+        """Cache files written before the move to dataclasses must still load."""
+        cached = """
+        dry-run: false
+        host:
+          packages: [git]
+          snaps:
+            charmcraft:
+              channel: latest/stable
+              connections: []
+        juju:
+          agent-version: 3.5.0
+          bootstrap-constraints: {mem: 4G}
+          channel: 3.5/stable
+          disable: false
+          extra-bootstrap-args: --debug
+          model-defaults: {test-mode: 'true'}
+          revision: ''
+        overrides:
+          disable_juju: false
+          extra_debs: []
+          extra_snaps: []
+        providers:
+          k8s:
+            enable: true
+            features: {network: {enabled: 'true'}}
+            image-registry: {password: '', url: 'https://mirror.example.com', username: ''}
+        status: succeeded
+        trace: false
+        verbose: false
+        """
+        config = ConciergeConfig.from_dict(yaml.safe_load(cached))
+        assert config.juju.agent_version == "3.5.0"
+        assert config.juju.bootstrap_constraints == {"mem": "4G"}
+        assert config.juju.extra_bootstrap_args == "--debug"
+        assert config.host.snaps["charmcraft"].channel == "latest/stable"
+        assert config.providers.k8s.features == {"network": {"enabled": "true"}}
+        assert config.providers.k8s.image_registry.url == "https://mirror.example.com"
+        assert config.status == Status.SUCCEEDED
+        assert config.dry_run is False
