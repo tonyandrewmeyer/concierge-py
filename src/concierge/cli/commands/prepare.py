@@ -17,6 +17,8 @@ async def run_prepare(
     preset: str,
     overrides: ConfigOverrides,
     *,
+    verbose: bool = False,
+    trace: bool = False,
     dry_run: bool = False,
 ) -> None:
     """Execute the prepare command to provision the environment.
@@ -25,12 +27,22 @@ async def run_prepare(
         config_file: Path to configuration file
         preset: Preset name to use
         overrides: Configuration overrides from CLI/env
+        verbose: Enable debug logging
+        trace: Print each command and its output
         dry_run: Log the planned actions without applying them
     """
     logger.info("Starting environment preparation")
 
     # Load configuration
     config = load_config(config_file=config_file, preset=preset, overrides=overrides)
+
+    # These are set on the command line only, never in the configuration file,
+    # so they are applied after loading rather than merged into it. They are
+    # recorded in the runtime configuration so that a later `restore` starts
+    # from the same values unless it is given its own flags.
+    config.verbose = verbose
+    config.trace = trace
+    config.dry_run = dry_run
 
     logger.info(
         "Configuration loaded",
