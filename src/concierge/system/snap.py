@@ -7,16 +7,9 @@ import socket
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from tenacity import (
-    AsyncRetrying,
-    RetryCallState,
-    RetryError,
-    stop_after_attempt,
-    wait_exponential,
-)
-
 from concierge.core.logging import get_logger
 from concierge.system.models import SnapInfo
+from concierge.system.retry import retry_with_backoff
 
 if TYPE_CHECKING:
     from collections.abc import Awaitable, Callable
@@ -318,40 +311,23 @@ class SnapdClient:
             Exception: If all retries fail
         """
 
-        def should_retry(retry_state: RetryCallState) -> bool:
+        def should_retry(exception: Exception) -> bool:
             """Determine if an exception should trigger a retry.
 
             Returns:
                 False for permanent failures like the snap being missing from the
                 store or not installed on the system.
             """
-            if retry_state.outcome is None:
-                return True
-
-            exception = retry_state.outcome.exception()
-            if exception is None:
-                return False
-
             # Don't retry on expected/permanent errors surfaced via typed sentinels.
             return not isinstance(exception, (SnapNotInstalledError, SnapNotFoundError))
 
-        try:
-            async for attempt in AsyncRetrying(
-                wait=wait_exponential(multiplier=1, min=1, max=10),
-                stop=stop_after_attempt(10),
-                retry=should_retry,
-                reraise=True,
-            ):
-                with attempt:
-                    return await func()
-        except RetryError as e:
-            exc = e.last_attempt.exception()
-            if exc is not None:
-                raise exc from e
-            raise
-
-        # This should never be reached
-        raise RuntimeError("Unexpected retry error")
+        return await retry_with_backoff(
+            func,
+            max_attempts=10,
+            min_wait=1,
+            max_wait=10,
+            is_retryable=should_retry,
+        )
 
 
 # Integrate snapd client with System class

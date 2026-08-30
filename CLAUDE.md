@@ -22,7 +22,7 @@ Installs LXD, K8s (MicroK8s or Canonical K8s), Juju, and development tools.
 - **Pydantic** for configuration validation
 - **structlog** for structured logging
 - **http.client** (stdlib) over the snapd Unix socket for snapd HTTP API communication
-- **tenacity** for retry logic
+- **concierge.system.retry** for retry logic (stdlib only)
 - **uv** for package management
 
 ## Development Workflow
@@ -38,7 +38,7 @@ Installs LXD, K8s (MicroK8s or Canonical K8s), Juju, and development tools.
 - **Linting**: Use ruff for both linting and formatting
 - **Async patterns**: Follow asyncio best practices (no blocking I/O in async functions)
 - **Logging**: Use structlog with structured context
-- **Error handling**: Use tenacity for retries, explicit error messages
+- **Error handling**: Use `retry_with_backoff` from `concierge.system.retry` for retries, explicit error messages
 - **Comments**: Use full sentences (ending with punctuation) and use comments to explain *why* changes are made, *not* what is being done - usually comments are not needed because the code should be understandable without them
 
 ## Testing
