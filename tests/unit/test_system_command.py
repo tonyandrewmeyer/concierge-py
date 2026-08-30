@@ -78,12 +78,19 @@ class TestCommand:
         assert "ls" in cmd.full_command[5]
         assert cmd.full_command[-1] == "-l"
 
-    def test_full_command_root_user_no_sudo(self) -> None:
-        """Test that root user doesn't add sudo prefix."""
+    def test_full_command_root_user_still_uses_sudo(self) -> None:
+        """Test that the root user is passed to sudo like any other."""
         cmd = Command(executable="ls", args=["-l"], user="root")
-        # When user is root, should not add sudo.
-        assert cmd.full_command[0] != "sudo"
-        assert "ls" in cmd.full_command[0]
+        assert cmd.full_command[0] == "sudo"
+        assert cmd.full_command[1:3] == ["-u", "root"]
+        assert "ls" in cmd.full_command[3]
+        assert cmd.full_command[-1] == "-l"
+
+    def test_full_command_root_user_keeps_the_group(self) -> None:
+        """The group has to be honoured for root too, not silently dropped."""
+        cmd = Command(executable="ls", args=["-l"], user="root", group="snap_microk8s")
+        assert cmd.full_command[:5] == ["sudo", "-u", "root", "-g", "snap_microk8s"]
+        assert "ls" in cmd.full_command[5]
         assert cmd.full_command[-1] == "-l"
 
     def test_full_command_no_args(self) -> None:
