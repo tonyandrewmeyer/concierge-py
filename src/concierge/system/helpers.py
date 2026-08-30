@@ -3,15 +3,8 @@
 import asyncio
 from typing import TYPE_CHECKING
 
-from tenacity import (
-    AsyncRetrying,
-    RetryError,
-    retry_if_exception_type,
-    stop_after_delay,
-    wait_exponential,
-)
-
 from concierge.system.command import Command, CommandError
+from concierge.system.retry import retry_with_backoff
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -44,25 +37,19 @@ async def run_with_retries(worker: Worker, cmd: Command, max_duration_ms: int) -
     max_duration_sec = max_duration_ms / 1000.0
     per_attempt_timeout = max_duration_sec * 0.9
 
+    async def attempt() -> bytes:
+        return await asyncio.wait_for(worker.run(cmd), timeout=per_attempt_timeout)
+
     try:
-        async for attempt in AsyncRetrying(
-            wait=wait_exponential(multiplier=1, min=1, max=60),
-            stop=stop_after_delay(max_duration_sec),
-            reraise=True,
-            retry=retry_if_exception_type((CommandError, asyncio.TimeoutError)),
-        ):
-            with attempt:
-                return await asyncio.wait_for(worker.run(cmd), timeout=per_attempt_timeout)
-    except RetryError as e:
-        exc = e.last_attempt.exception()
-        if exc is not None:
-            raise exc from e
-        raise
+        return await retry_with_backoff(
+            attempt,
+            max_duration=max_duration_sec,
+            min_wait=1,
+            max_wait=60,
+            is_retryable=lambda e: isinstance(e, (CommandError, asyncio.TimeoutError)),
+        )
     except TimeoutError as e:
         raise CommandError(cmd.command_string, -1, "Command timed out") from e
-
-    # This should never be reached due to reraise=True.
-    raise RuntimeError("Unexpected retry error")
 
 
 async def read_home_file(worker: Worker, filepath: Path) -> bytes:

@@ -7,13 +7,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import yaml
-from tenacity import (
-    AsyncRetrying,
-    RetryCallState,
-    RetryError,
-    stop_after_attempt,
-    wait_exponential,
-)
 
 from concierge import securitylog
 from concierge.core.logging import get_logger
@@ -22,6 +15,7 @@ from concierge.packages.snap_handler import SnapHandler
 from concierge.system.command import Command, CommandError
 from concierge.system.helpers import mk_home_subdir, run_with_retries, write_home_file
 from concierge.system.models import Snap
+from concierge.system.retry import retry_with_backoff
 
 if TYPE_CHECKING:
     from concierge.config.models import ConciergeConfig
@@ -300,14 +294,7 @@ class JujuHandler:
         # Don't retry if the controller definitively doesn't exist
         controller_not_found = f"controller {controller_name} not found"
 
-        def should_retry(retry_state: RetryCallState) -> bool:
-            if retry_state.outcome is None:
-                return True
-
-            exception = retry_state.outcome.exception()
-            if exception is None:
-                return False
-
+        def should_retry(exception: Exception) -> bool:
             if isinstance(exception, CommandError):
                 # Retry transient errors, but not if controller definitively not found
                 return controller_not_found not in exception.output
@@ -315,29 +302,20 @@ class JujuHandler:
 
         # Retry the check with exponential backoff
         try:
-            async for attempt in AsyncRetrying(
-                wait=wait_exponential(multiplier=1, min=1, max=10),
-                stop=stop_after_attempt(10),
-                retry=should_retry,
-                reraise=True,
-            ):
-                with attempt:
-                    await self.system.run(cmd)
-                    return True
+            await retry_with_backoff(
+                lambda: self.system.run(cmd),
+                max_attempts=10,
+                min_wait=1,
+                max_wait=10,
+                is_retryable=should_retry,
+            )
+            return True
         except CommandError as e:
             # Check if error is "controller not found"
             if controller_not_found in e.output:
                 return False
             # Other errors should be re-raised
             raise
-        except RetryError as e:
-            # Re-raise the underlying error
-            exc = e.last_attempt.exception()
-            if exc is not None:
-                raise exc from e
-            raise
-
-        return False
 
     async def _kill_provider(self, provider: Provider) -> None:
         """Destroy the Juju controller for a provider.
