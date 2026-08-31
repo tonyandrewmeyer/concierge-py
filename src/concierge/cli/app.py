@@ -196,7 +196,16 @@ def _prepare(args: argparse.Namespace) -> None:
     )
 
     try:
-        asyncio.run(run_prepare(args.config, args.preset, cli_overrides, dry_run=args.dry_run))
+        asyncio.run(
+            run_prepare(
+                args.config,
+                args.preset,
+                cli_overrides,
+                verbose=getattr(args, "verbose", False),
+                trace=getattr(args, "trace", False),
+                dry_run=args.dry_run,
+            )
+        )
     except CommandError as e:
         _handle_privilege_error(e)
 
@@ -207,7 +216,15 @@ def _restore(args: argparse.Namespace) -> None:
     _validate_preset(args.preset)
 
     try:
-        asyncio.run(run_restore(args.config, args.preset, dry_run=args.dry_run))
+        asyncio.run(
+            run_restore(
+                args.config,
+                args.preset,
+                verbose=getattr(args, "verbose", False),
+                trace=getattr(args, "trace", False),
+                dry_run=args.dry_run,
+            )
+        )
     except CommandError as e:
         _handle_privilege_error(e)
 
