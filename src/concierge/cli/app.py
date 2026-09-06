@@ -23,13 +23,22 @@ if TYPE_CHECKING:
     from collections.abc import Sequence
 
 
+def _package_version() -> str:
+    """Return the installed package version, or "unknown" outside an install."""
+    try:
+        return version("concierge")
+    except PackageNotFoundError:
+        return "unknown"
+
+
 def _appid() -> str:
     """Build the SEC0045 appid string, embedding the installed package version."""
-    try:
-        pkg_version = version("concierge")
-    except PackageNotFoundError:
-        pkg_version = "unknown"
-    return f"concierge@{pkg_version}"
+    return f"concierge@{_package_version()}"
+
+
+def _version_string() -> str:
+    """Build the version text shared by `--version` and the `version` subcommand."""
+    return f"concierge version {_package_version()}"
 
 
 def _split_comma_list(items: list[str]) -> list[str]:
@@ -98,6 +107,7 @@ def _build_parser() -> argparse.ArgumentParser:
         description="Provision and manage charm development environments",
         parents=[global_options],
     )
+    parser.add_argument("--version", action="version", version=_version_string())
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     prepare = subparsers.add_parser(
@@ -166,6 +176,14 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     status.set_defaults(func=_status)
 
+    version_command = subparsers.add_parser(
+        "version",
+        parents=[global_options],
+        help="Print version information",
+        description="Print version information. Equivalent to running 'concierge --version'.",
+    )
+    version_command.set_defaults(func=_version)
+
     return parser
 
 
@@ -232,6 +250,11 @@ def _restore(args: argparse.Namespace) -> None:
 def _status(args: argparse.Namespace) -> None:
     """Show the status of the Concierge environment."""
     run_status()
+
+
+def _version(args: argparse.Namespace) -> None:
+    """Print version information, matching the output of the `--version` flag."""
+    print(_version_string())
 
 
 def main(argv: Sequence[str] | None = None) -> None:
