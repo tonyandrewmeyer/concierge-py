@@ -2,7 +2,7 @@
 
 This file tracks synchronization status with [canonical/concierge](https://github.com/canonical/concierge) (the Go implementation).
 
-**Last sync check:** 2026-09-06
+**Last sync check:** 2026-09-13
 **Baseline:** concierge-py created 2024-10-10, syncing changes after that date
 
 ## Pending Changes
@@ -34,6 +34,7 @@ All changes have been ported. See branches below for PRs.
 | [#36](https://github.com/tonyandrewmeyer/concierge-py/pull/36) | `feat/security-event-logging` | `f958bd5` | Add SEC0045 OWASP security event logging |
 | [#41](https://github.com/tonyandrewmeyer/concierge-py/pull/41) | `refactor/snapd-sentinel-errors` | `487700e` | Use sentinel errors instead of matching on error strings |
 | [#55](https://github.com/tonyandrewmeyer/concierge-py/pull/55) | `feat/version-subcommand` | `8255a3b` | Add `version` subcommand aliased to the `--version` flag |
+| [#57](https://github.com/tonyandrewmeyer/concierge-py/pull/57) | `fix/home-dir-file-permissions` | `ad8030d` | Write files in the user's home directory as 0600 |
 
 ### Previously Merged
 
@@ -106,3 +107,4 @@ These changes don't apply to the Python implementation:
 - `91d233a` - Initial Sphinx/Diataxis docs site for the Go tool (`docs/` build, `canonical-sphinx` stack, Docs CI workflow) — concierge-py's docs live in the README, not a Sphinx site; no behavioural analogue
 - `f311d29` - Enable Read the Docs publishing for the Go docs site — infrastructure for the Sphinx site added in `91d233a`, not applicable here
 - `74d0c03` - Link to the newly-published Go docs site from README/CONTRIBUTING/SECURITY/goreleaser — links point at Go-specific published docs concierge-py doesn't have
+- `90cb9ab` - Add a Workshop dev-environment config (`.workshop/dev.yaml`, Go SDK, `go build`/`test`/`vet` actions, Pi agent harness hook) — Go-toolchain-specific dev sandbox tooling with no uv/ruff/ty analogue
