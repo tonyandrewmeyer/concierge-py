@@ -158,13 +158,39 @@ class System:
         return filepath.read_bytes()
 
     async def write_file(self, filepath: Path, contents: bytes) -> None:
-        """Write contents to a file."""
+        """Write contents to a file.
+
+        Every caller writes into the user's home directory, and every such
+        file can carry secrets: Juju cloud credentials, a kubeconfig, or the
+        cached runtime config, which holds the image registry password when
+        one is configured. The file is chmod'd to 0600 after writing, since
+        the mode passed to write_bytes is still subject to the process umask.
+        """
         filepath.write_bytes(contents)
+        filepath.chmod(0o600)
         logger.debug("Wrote file", path=str(filepath))
 
     async def mkdir_all(self, dirpath: Path) -> None:
-        """Create a directory and all parent directories."""
+        """Create a directory and all parent directories.
+
+        Pathlib only applies the requested mode to the leaf directory, so any
+        newly created parents are tracked here and chmod'd explicitly too.
+        The mode is set rather than left to the umask, because concierge runs
+        as root and a permissive umask would otherwise produce a
+        world-writable directory. Directories that already existed are left
+        untouched.
+        """
+        created: list[Path] = []
+        parent = dirpath
+        while not parent.exists():
+            created.append(parent)
+            parent = parent.parent
+
         dirpath.mkdir(parents=True, exist_ok=True)
+
+        for path in created:
+            path.chmod(0o755)
+
         logger.debug("Created directory", path=str(dirpath))
 
     async def remove_path(self, filepath: Path) -> None:
