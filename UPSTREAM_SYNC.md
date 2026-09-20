@@ -2,7 +2,7 @@
 
 This file tracks synchronization status with [canonical/concierge](https://github.com/canonical/concierge) (the Go implementation).
 
-**Last sync check:** 2026-09-13
+**Last sync check:** 2026-09-20
 **Baseline:** concierge-py created 2024-10-10, syncing changes after that date
 
 ## Pending Changes
