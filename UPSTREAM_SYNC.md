@@ -2,7 +2,7 @@
 
 This file tracks synchronization status with [canonical/concierge](https://github.com/canonical/concierge) (the Go implementation).
 
-**Last sync check:** 2026-10-04
+**Last sync check:** 2026-10-11
 **Baseline:** concierge-py created 2024-10-10, syncing changes after that date
 
 ## Pending Changes
@@ -46,6 +46,7 @@ All changes have been ported. See branches below for PRs.
 | `fix/symlink-chown` | `39a18ff` | Don't dereference symlinks in recursive ownership change |
 | `feat/show-command-timing` | `6bd43c7` | Show time taken for each command in verbose mode |
 | `fix/check-bootstrapped-error` | `63c74a3` | Look for more specific error in checkBootstrapped |
+| `chore/update-upstream-sync-2026-10-11` | `04be524` | Use `1.32-classic/candidate` k8s channel in the `overrides-env` spread test |
 
 ### Already Implemented (No Action Needed)
 
@@ -94,7 +95,7 @@ These changes don't apply to the Python implementation:
 - `d6548eb` - Viper nil-value workaround (Viper is Go-specific; Python uses Pydantic)
 - `89a3728` - Replace `cmdMu` + `map[string]*sync.Mutex` with `sync.Map.LoadOrStore` in `RunExclusive`, plus comments documenting Go pflag `Get*` error discards. The Go change is a Coverity-finding refactor with no behavioural change; Python's `run_exclusive` already uses an `asyncio.Lock` + dict pattern that is idiomatic and equivalent, and the pflag comments have no analogue in Typer-based code.
 - `e904ac9`, `600fdca` - Release-time secscan / SBOM workflows for the Go binary
-- `c3f5a01`, `25e26be`, `54cc160`, `0b0c130`, `785cf2a`, `01cc700` - Go toolchain version bumps
+- `14aaea5`, `c3f5a01`, `25e26be`, `54cc160`, `0b0c130`, `785cf2a`, `01cc700` - Go toolchain version bumps
 - `3ef5241` - Add 386/armhf/riscv64 targets to `.goreleaser.yaml` (Python wheels don't use goreleaser)
 - `606b004` - Charm Tech OP0xx dependabot conventions (rename `.yml`→`.yaml`, `gomod` groups) — needs human review: concierge-py's dependabot config already has its own pip/github-actions structure with cooldowns and grouping, and the Go-lane spec doesn't map cleanly to Python's pip lane
 - `87eab71` - Hash-pin all third-party actions and drop `zizmor.yaml` — needs human review: concierge-py hash-pins some actions (`setup-uv`, `actions/checkout@v4.3.1` in `zizmor.yaml`) but not others, and dropping the local zizmor policy needs a repo-wide audit first
