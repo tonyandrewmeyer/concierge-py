@@ -46,6 +46,7 @@ All changes have been ported. See branches below for PRs.
 | `fix/symlink-chown` | `39a18ff` | Don't dereference symlinks in recursive ownership change |
 | `feat/show-command-timing` | `6bd43c7` | Show time taken for each command in verbose mode |
 | `fix/check-bootstrapped-error` | `63c74a3` | Look for more specific error in checkBootstrapped |
+| `chore/update-upstream-sync-2026-10-11` | `04be524` | Use `1.32-classic/candidate` k8s channel in the `overrides-env` spread test |
 
 ### Already Implemented (No Action Needed)
 
@@ -108,5 +109,4 @@ These changes don't apply to the Python implementation:
 - `f311d29` - Enable Read the Docs publishing for the Go docs site — infrastructure for the Sphinx site added in `91d233a`, not applicable here
 - `74d0c03` - Link to the newly-published Go docs site from README/CONTRIBUTING/SECURITY/goreleaser — links point at Go-specific published docs concierge-py doesn't have
 - `90cb9ab` - Add a Workshop dev-environment config (`.workshop/dev.yaml`, Go SDK, `go build`/`test`/`vet` actions, Pi agent harness hook) — Go-toolchain-specific dev sandbox tooling with no uv/ruff/ty analogue
-- `04be524` - Use candidate k8s channel in the Go spread `overrides-env` test (Go spread integration test only, no unit-test analogue)
 - `1ba9693` - Describe Concierge's security model in the Go docs site (`docs/explanation/security.md`) — documentation for the Sphinx site concierge-py doesn't have; the behaviour it describes (0600 files, SEC0045 events) is tracked in #57 and #36
