@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, Any
 
 from concierge.core.logging import get_logger
 from concierge.packages.snap_handler import SnapHandler
+from concierge.providers.base import default_controller_name
 from concierge.system.command import Command
 from concierge.system.helpers import run_exclusive
 from concierge.system.models import Snap
@@ -31,6 +32,7 @@ class LXD:
         """
         self.system = system
         self._bootstrap = config.providers.lxd.bootstrap
+        self._controller_name = config.providers.lxd.controller_name
         self._model_defaults = config.providers.lxd.model_defaults
         self._bootstrap_constraints = config.providers.lxd.bootstrap_constraints
 
@@ -73,6 +75,10 @@ class LXD:
     def bootstrap(self) -> bool:
         """Check if bootstrap is enabled."""
         return self._bootstrap
+
+    def controller_name(self) -> str:
+        """Get the name of the Juju controller bootstrapped on this provider."""
+        return self._controller_name or default_controller_name(self.name())
 
     def cloud_name(self) -> str:
         """Get the Juju cloud name."""

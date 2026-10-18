@@ -167,6 +167,9 @@ providers:
     enable: true | false
     # (Optional) Whether or not to bootstrap a controller onto MicroK8s.
     bootstrap: true | false
+    # (Optional) Name of the Juju controller to bootstrap. Defaults to concierge-<provider>.
+    # Must match ^[a-z0-9]+[a-z0-9-]*$ and be unique across bootstrapped providers.
+    controller-name: <name>
     # (Optional): A map of model-defaults to set when bootstrapping the Juju controller.
     model-defaults:
       <model-default>: <value>
@@ -185,6 +188,9 @@ providers:
     enable: true | false
     # (Optional) Whether or not to bootstrap a controller onto K8s.
     bootstrap: true | false
+    # (Optional) Name of the Juju controller to bootstrap. Defaults to concierge-<provider>.
+    # Must match ^[a-z0-9]+[a-z0-9-]*$ and be unique across bootstrapped providers.
+    controller-name: <name>
     # (Optional): Channel from which to install K8s.
     channel: <channel>
     # (Optional): A map of model-defaults to set when bootstrapping the Juju controller.
@@ -204,6 +210,9 @@ providers:
     enable: true | false
     # (Optional) Whether or not to bootstrap a controller onto LXD.
     bootstrap: true | false
+    # (Optional) Name of the Juju controller to bootstrap. Defaults to concierge-<provider>.
+    # Must match ^[a-z0-9]+[a-z0-9-]*$ and be unique across bootstrapped providers.
+    controller-name: <name>
     # (Optional): Channel from which to install LXD.
     channel: <channel>
     # (Optional): A map of model-defaults to set when bootstrapping the Juju controller.
@@ -219,6 +228,9 @@ providers:
     enable: true | false
     # (Optional) Whether or not to bootstrap a controller onto Google Cloud.
     bootstrap: true | false
+    # (Optional) Name of the Juju controller to bootstrap. Defaults to concierge-<provider>.
+    # Must match ^[a-z0-9]+[a-z0-9-]*$ and be unique across bootstrapped providers.
+    controller-name: <name>
     # (Optional): File containing credentials for Google cloud.
     # See below note on the credentials file format.
     credentials-file: <path>

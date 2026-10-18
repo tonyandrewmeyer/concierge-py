@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 import yaml
 
 from concierge.core.logging import get_logger
+from concierge.providers.base import default_controller_name
 
 if TYPE_CHECKING:
     from concierge.config.models import ConciergeConfig
@@ -30,6 +31,7 @@ class Google:
         """
         self.system = system
         self._bootstrap = config.providers.google.bootstrap
+        self._controller_name = config.providers.google.controller_name
         self._model_defaults = config.providers.google.model_defaults
         self._bootstrap_constraints = config.providers.google.bootstrap_constraints
 
@@ -82,6 +84,10 @@ class Google:
     def bootstrap(self) -> bool:
         """Check if bootstrap is enabled."""
         return self._bootstrap
+
+    def controller_name(self) -> str:
+        """Get the name of the Juju controller bootstrapped on this provider."""
+        return self._controller_name or default_controller_name(self.name())
 
     def cloud_name(self) -> str:
         """Get the Juju cloud name."""

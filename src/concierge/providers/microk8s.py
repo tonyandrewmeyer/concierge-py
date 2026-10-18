@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from concierge.core.logging import get_logger
 from concierge.packages.snap_handler import SnapHandler
+from concierge.providers.base import default_controller_name
 from concierge.providers.registry import build_hosts_toml
 from concierge.system.command import Command
 from concierge.system.helpers import run_with_retries, write_home_file
@@ -57,6 +58,7 @@ class MicroK8s:
         """
         self.system = system
         self._bootstrap = config.providers.microk8s.bootstrap
+        self._controller_name = config.providers.microk8s.controller_name
         self._model_defaults = config.providers.microk8s.model_defaults
         self._bootstrap_constraints = config.providers.microk8s.bootstrap_constraints
         self.addons = config.providers.microk8s.addons
@@ -117,6 +119,10 @@ class MicroK8s:
     def bootstrap(self) -> bool:
         """Check if bootstrap is enabled."""
         return self._bootstrap
+
+    def controller_name(self) -> str:
+        """Get the name of the Juju controller bootstrapped on this provider."""
+        return self._controller_name or default_controller_name(self.name())
 
     def cloud_name(self) -> str:
         """Get the Juju cloud name."""

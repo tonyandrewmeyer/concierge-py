@@ -187,6 +187,7 @@ class LXDConfig(_ConfigBase):
 
     enable: bool = False
     bootstrap: bool = False
+    controller_name: str = field(default="", metadata=_alias("controller-name"))
     channel: str = ""
     model_defaults: dict[str, str] = field(default_factory=dict, metadata=_alias("model-defaults"))
     bootstrap_constraints: dict[str, str] = field(
@@ -200,6 +201,7 @@ class GoogleConfig(_ConfigBase):
 
     enable: bool = False
     bootstrap: bool = False
+    controller_name: str = field(default="", metadata=_alias("controller-name"))
     credentials_file: str = field(default="", metadata=_alias("credentials-file"))
     model_defaults: dict[str, str] = field(default_factory=dict, metadata=_alias("model-defaults"))
     bootstrap_constraints: dict[str, str] = field(
@@ -222,6 +224,7 @@ class MicroK8sConfig(_ConfigBase):
 
     enable: bool = False
     bootstrap: bool = False
+    controller_name: str = field(default="", metadata=_alias("controller-name"))
     channel: str = ""
     addons: list[str] = field(default_factory=list)
     image_registry: ImageRegistryConfig = field(
@@ -239,6 +242,7 @@ class K8sConfig(_ConfigBase):
 
     enable: bool = False
     bootstrap: bool = False
+    controller_name: str = field(default="", metadata=_alias("controller-name"))
     channel: str = ""
     features: dict[str, dict[str, str]] = field(default_factory=dict)
     image_registry: ImageRegistryConfig = field(
@@ -319,6 +323,18 @@ class HostConfig(_ConfigBase):
 
 
 @dataclass
+class BootstrappedController(_ConfigBase):
+    """A Juju controller that Concierge bootstrapped.
+
+    The UUID lets restore tell the controller apart from one that later reused its name.
+    It is empty when it could not be read after the bootstrap.
+    """
+
+    cloud: str = ""
+    uuid: str = ""
+
+
+@dataclass
 class ConciergeConfig(_ConfigBase):
     """Main configuration for Concierge."""
 
@@ -332,3 +348,9 @@ class ConciergeConfig(_ConfigBase):
     verbose: bool = False
     trace: bool = False
     dry_run: bool = field(default=False, metadata=_alias("dry-run"))
+
+    # Recorded during prepare so that restore only destroys controllers Concierge created.
+    # Keyed by controller name.
+    bootstrapped_controllers: dict[str, BootstrappedController] = field(
+        default_factory=dict, metadata=_alias("bootstrapped-controllers")
+    )

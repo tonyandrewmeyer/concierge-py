@@ -1,6 +1,7 @@
 """Plan for executing Concierge operations."""
 
 import asyncio
+import re
 from typing import TYPE_CHECKING
 
 from concierge.core.logging import get_logger
@@ -54,6 +55,38 @@ def _get_snap_channel_override(config: ConciergeConfig, snap_name: str) -> str:
         "rockcraft": config.overrides.rockcraft_channel,
     }
     return overrides.get(snap_name, "")
+
+
+# Matches the controller names that Juju accepts.
+_VALID_CONTROLLER_NAME = re.compile(r"[a-z0-9]+[a-z0-9-]*")
+
+
+def _validate_controller_names(plan: Plan) -> None:
+    """Ensure each bootstrapped provider has a valid, unique controller name.
+
+    Raises:
+        ValueError: If a name is invalid or shared by two providers
+    """
+    # The providers are never bootstrapped when Juju is disabled, so an otherwise-unused
+    # controller name must not fail the plan.
+    if plan.config.juju.disable:
+        return
+
+    seen: dict[str, str] = {}
+    for provider in plan.providers:
+        if not provider.bootstrap():
+            continue
+
+        name = provider.controller_name()
+        if not _VALID_CONTROLLER_NAME.fullmatch(name):
+            raise ValueError(f"invalid controller name {name!r} for provider {provider.name()!r}")
+
+        if name in seen:
+            raise ValueError(
+                f"providers {seen[name]!r} and {provider.name()!r} cannot share "
+                f"the controller name {name!r}"
+            )
+        seen[name] = provider.name()
 
 
 class Plan:
@@ -159,5 +192,4 @@ class Plan:
         Raises:
             Exception: If validation fails
         """
-        # Could add validation logic here
-        # For now, this is a placeholder
+        _validate_controller_names(self)
