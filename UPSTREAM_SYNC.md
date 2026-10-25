@@ -35,6 +35,7 @@ All changes have been ported. See branches below for PRs.
 | [#41](https://github.com/tonyandrewmeyer/concierge-py/pull/41) | `refactor/snapd-sentinel-errors` | `487700e` | Use sentinel errors instead of matching on error strings |
 | [#55](https://github.com/tonyandrewmeyer/concierge-py/pull/55) | `feat/version-subcommand` | `8255a3b` | Add `version` subcommand aliased to the `--version` flag |
 | [#57](https://github.com/tonyandrewmeyer/concierge-py/pull/57) | `fix/home-dir-file-permissions` | `ad8030d` | Write files in the user's home directory as 0600 |
+| [#61](https://github.com/tonyandrewmeyer/concierge-py/pull/61) | `feat/juju-controller-name` | `7310397` | Allow the Juju controller name to be set per provider (draft: large) |
 
 ### Previously Merged
 
@@ -110,3 +111,4 @@ These changes don't apply to the Python implementation:
 - `74d0c03` - Link to the newly-published Go docs site from README/CONTRIBUTING/SECURITY/goreleaser — links point at Go-specific published docs concierge-py doesn't have
 - `90cb9ab` - Add a Workshop dev-environment config (`.workshop/dev.yaml`, Go SDK, `go build`/`test`/`vet` actions, Pi agent harness hook) — Go-toolchain-specific dev sandbox tooling with no uv/ruff/ty analogue
 - `1ba9693` - Describe Concierge's security model in the Go docs site (`docs/explanation/security.md`) — documentation for the Sphinx site concierge-py doesn't have; the behaviour it describes (0600 files, SEC0045 events) is tracked in #57 and #36
+- `d62a760` - Share format/lint and test jobs between push and release Go workflows via reusable `_checks.yaml`, plus an `All tests passed` aggregator — Go toolchain jobs (go fmt, staticcheck, govulncheck, spread matrix); concierge-py's `ci.yaml` has no equivalent split, so needs human review only if a required-check aggregator is wanted
