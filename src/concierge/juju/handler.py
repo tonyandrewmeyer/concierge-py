@@ -1,6 +1,7 @@
 """Juju handler for installation and bootstrap."""
 
 import asyncio
+import json
 import platform
 import shlex
 from pathlib import Path
@@ -9,9 +10,11 @@ from typing import TYPE_CHECKING
 import yaml
 
 from concierge import securitylog
+from concierge.config.models import BootstrappedController
 from concierge.core.logging import get_logger
 from concierge.juju.credentials import build_credentials_yaml
 from concierge.packages.snap_handler import SnapHandler
+from concierge.providers.base import default_controller_name, is_local_cloud
 from concierge.system.command import Command, CommandError
 from concierge.system.helpers import mk_home_subdir, run_with_retries, write_home_file
 from concierge.system.models import Snap
@@ -82,6 +85,10 @@ class JujuHandler:
         self.system = system
         self.providers = providers
 
+        # Held so that controllers can be recorded as they are bootstrapped, and read back
+        # during restore.
+        self.config = config
+
         # Apply channel override if present
         channel = config.juju.channel
         if config.overrides.juju_channel:
@@ -124,12 +131,13 @@ class JujuHandler:
         Raises:
             Exception: If restoration fails
         """
-        # Kill controllers for credentialed providers
-        for provider in self.providers:
-            if not provider.credentials():
-                continue
-
-            await self._kill_provider(provider)
+        # Destroy the controllers that Concierge recorded bootstrapping. The record includes
+        # controllers from earlier prepares under a different name, and never includes a
+        # controller that Concierge found already running. Sorted so that the order is
+        # predictable.
+        controllers = self._controllers_to_destroy()
+        for name in sorted(controllers):
+            await self._destroy_controller(name, controllers[name])
 
         # Remove Juju data directory
         await self.system.remove_path(self.system.home_dir() / ".local/share/juju")
@@ -200,14 +208,31 @@ class JujuHandler:
         if not provider.bootstrap():
             return
 
-        controller_name = f"concierge-{provider.name()}"
+        controller_name = provider.controller_name()
 
         # Check if already bootstrapped
         if await self._check_bootstrapped(controller_name):
-            logger.info("Previous Juju controller found", provider=provider.name())
+            # With a user-chosen name the existing controller could belong to a different
+            # cloud (or to the user), in which case skipping the bootstrap would leave this
+            # provider with no controller and no error. A dry run only prints commands, so
+            # there is nothing real to inspect.
+            if not self.config.dry_run:
+                details = await self._controller_details(controller_name)
+                if details.cloud != provider.cloud_name():
+                    raise RuntimeError(
+                        f"existing controller '{controller_name}' is on cloud "
+                        f"'{details.cloud}', but provider '{provider.name()}' uses cloud "
+                        f"'{provider.cloud_name()}'; set a different controller-name"
+                    )
+
+            logger.info(
+                "Previous Juju controller found",
+                provider=provider.name(),
+                controller=controller_name,
+            )
             return
 
-        logger.info("Bootstrapping Juju", provider=provider.name())
+        logger.info("Bootstrapping Juju", provider=provider.name(), controller=controller_name)
 
         # Build bootstrap command arguments
         args = [
@@ -251,6 +276,10 @@ class JujuHandler:
         # Use a 30-minute budget so a transient failure gets a real second go.
         await run_with_retries(self.system, cmd, 30 * 60 * 1000)
 
+        # Record the controller as soon as it exists, so that restore still destroys it if one
+        # of the steps below fails.
+        await self._record_bootstrapped_controller(controller_name, provider.cloud_name())
+
         # Create testing model
         cmd = Command(
             executable="juju",
@@ -269,7 +298,94 @@ class JujuHandler:
         )
         await self.system.run(cmd)
 
-        logger.info("Bootstrapped Juju", provider=provider.name())
+        logger.info("Bootstrapped Juju", provider=provider.name(), controller=controller_name)
+
+    async def _record_bootstrapped_controller(self, controller_name: str, cloud: str) -> None:
+        """Record that Concierge bootstrapped a controller, including its UUID.
+
+        Args:
+            controller_name: Name of the controller
+            cloud: Cloud the controller was bootstrapped on
+        """
+        # Nothing was bootstrapped in a dry run, and the runtime config is not written.
+        if self.config.dry_run:
+            return
+
+        record = BootstrappedController(cloud=cloud)
+        try:
+            record.uuid = (await self._controller_details(controller_name)).uuid
+        except (CommandError, ValueError) as e:
+            # Restore can still identify the controller by name and cloud.
+            logger.warning(
+                "Failed to read the UUID of the new controller",
+                controller=controller_name,
+                error=str(e),
+            )
+
+        self.config.bootstrapped_controllers[controller_name] = record
+
+    def _controllers_to_destroy(self) -> dict[str, BootstrappedController]:
+        """Get the recorded controllers, plus unrecorded default-named ones on remote clouds.
+
+        Versions of Concierge before the record existed destroyed the default-named controller
+        of each bootstrapped provider on restore. Including those that are missing from the
+        record keeps a controller bootstrapped by one of them from being left running (and, on
+        a paid cloud, costing money) after an upgrade between prepare and restore. They have no
+        UUID, so only their cloud is checked.
+
+        Returns:
+            Controllers to destroy, keyed by name
+        """
+        controllers = dict(self.config.bootstrapped_controllers)
+
+        for provider in self.providers:
+            name = default_controller_name(provider.name())
+            if (
+                not provider.bootstrap()
+                or provider.controller_name() != name
+                or is_local_cloud(provider.cloud_name())
+                or name in controllers
+            ):
+                continue
+
+            logger.debug(
+                "Including unrecorded controller with the default name",
+                controller=name,
+                cloud=provider.cloud_name(),
+            )
+            controllers[name] = BootstrappedController(cloud=provider.cloud_name())
+
+        return controllers
+
+    async def _controller_details(self, controller_name: str) -> BootstrappedController:
+        """Read the cloud and UUID of an existing controller from `juju show-controller`.
+
+        Args:
+            controller_name: Name of the controller
+
+        Returns:
+            The controller's cloud and UUID
+
+        Raises:
+            ValueError: If the output cannot be parsed
+            CommandError: If the command fails
+        """
+        cmd = Command(
+            executable="juju",
+            args=["show-controller", controller_name, "--format", "json"],
+            user=self.system.username(),
+            read_only=True,
+        )
+        output = await self.system.run(cmd)
+
+        try:
+            controller = json.loads(output)[controller_name]
+            details = controller["details"]
+            return BootstrappedController(cloud=details["cloud"], uuid=details["uuid"])
+        except (json.JSONDecodeError, KeyError, TypeError) as e:
+            raise ValueError(
+                f"failed to parse details of controller '{controller_name}': {e!r}"
+            ) from e
 
     async def _check_bootstrapped(self, controller_name: str) -> bool:
         """Check if a Juju controller exists.
@@ -317,32 +433,52 @@ class JujuHandler:
             # Other errors should be re-raised
             raise
 
-    async def _kill_provider(self, provider: Provider) -> None:
-        """Destroy the Juju controller for a provider.
+    async def _destroy_controller(
+        self, controller_name: str, record: BootstrappedController
+    ) -> None:
+        """Destroy a controller that Concierge recorded bootstrapping, if it is still that one.
 
         Args:
-            provider: Provider whose controller to destroy
+            controller_name: Name of the controller
+            record: What Concierge recorded about the controller
 
         Raises:
             Exception: If controller destruction fails
         """
-        controller_name = f"concierge-{provider.name()}"
-
-        # Check if controller exists
-        if not await self._check_bootstrapped(controller_name):
-            logger.info("No Juju controller found", provider=provider.name())
+        # Controllers on local clouds run on this machine, and restoring their provider (which
+        # happens before Juju is restored) has already removed them. Contacting one would only
+        # wait for a connection that cannot succeed.
+        if is_local_cloud(record.cloud):
+            logger.debug(
+                "Skipping controller on a local cloud",
+                controller=controller_name,
+                cloud=record.cloud,
+            )
             return
 
-        logger.info("Destroying Juju controller", provider=provider.name())
+        if not await self._check_bootstrapped(controller_name):
+            logger.info("No Juju controller found", controller=controller_name, cloud=record.cloud)
+            return
 
-        # Kill controller
-        username = self.system.username()
+        # The name may have been reused, since Concierge recorded it, for a controller that
+        # Concierge did not create.
+        details = await self._controller_details(controller_name)
+        if details.cloud != record.cloud or (record.uuid and details.uuid != record.uuid):
+            logger.warning(
+                "Controller is not the one Concierge bootstrapped, leaving in place",
+                controller=controller_name,
+                cloud=details.cloud,
+                uuid=details.uuid,
+            )
+            return
+
+        logger.info("Destroying Juju controller", controller=controller_name, cloud=record.cloud)
+
         cmd = Command(
             executable="juju",
             args=["kill-controller", "--verbose", "--no-prompt", controller_name],
-            user=username,
+            user=self.system.username(),
         )
-
         await self.system.run(cmd)
 
-        logger.info("Destroyed Juju controller", provider=provider.name())
+        logger.info("Destroyed Juju controller", controller=controller_name, cloud=record.cloud)

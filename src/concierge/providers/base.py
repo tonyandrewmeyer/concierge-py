@@ -2,6 +2,20 @@
 
 from typing import Any, Protocol, runtime_checkable
 
+# Clouds, as Juju names them, whose controllers run on this machine. Restoring the provider
+# removes them, so Concierge never destroys them itself.
+LOCAL_CLOUDS = frozenset({"localhost", "microk8s", "k8s"})
+
+
+def is_local_cloud(cloud: str) -> bool:
+    """Check whether controllers on the named cloud run on this machine."""
+    return cloud in LOCAL_CLOUDS
+
+
+def default_controller_name(provider: str) -> str:
+    """Get the controller name used for a provider when none is configured."""
+    return f"concierge-{provider}"
+
 
 @runtime_checkable
 class Provider(Protocol):
@@ -80,5 +94,13 @@ class Provider(Protocol):
 
         Returns:
             Bootstrap constraints dict
+        """
+        ...
+
+    def controller_name(self) -> str:
+        """Get the name of the Juju controller bootstrapped on this provider.
+
+        Returns:
+            The configured name, or ``concierge-<provider>`` by default
         """
         ...

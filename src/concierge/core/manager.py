@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import yaml
 
 from concierge import securitylog
-from concierge.config.models import ConciergeConfig, Status
+from concierge.config.models import BootstrappedController, ConciergeConfig, Status
 from concierge.core.logging import get_logger
 from concierge.core.plan import Plan
 from concierge.system.dryrun import DryRunWorker
@@ -117,6 +117,10 @@ class Manager:
             Exception: If execution fails
         """
         if action == "prepare":
+            # Carry forward the controllers recorded by any previous prepare, so a controller
+            # bootstrapped under a name that is no longer configured is still torn down by
+            # a later restore.
+            self.config.bootstrapped_controllers = await self._previous_bootstrapped_controllers()
             await self._record_runtime_config(Status.PROVISIONING)
         elif action == "restore":
             await self._load_runtime_config()
@@ -126,6 +130,30 @@ class Manager:
         # Create and execute the plan
         self.plan = Plan(self.config, self.system)
         await self.plan.execute(action)
+
+    async def _previous_bootstrapped_controllers(self) -> dict[str, BootstrappedController]:
+        """Read the controllers recorded by an earlier prepare from the cached runtime config.
+
+        Returns:
+            The recorded controllers, or none if there is no readable cache
+        """
+        record_path = Path(".cache/concierge/concierge.yaml")
+
+        try:
+            contents = await read_home_file(self.system, record_path)
+            previous = ConciergeConfig.from_dict(yaml.safe_load(contents))
+        except FileNotFoundError:
+            return {}
+        except (OSError, yaml.YAMLError) as e:
+            logger.warning(
+                "Failed to read the cached runtime config; controllers bootstrapped by earlier "
+                "prepares will not be destroyed on restore",
+                path=str(record_path),
+                error=str(e),
+            )
+            return {}
+
+        return previous.bootstrapped_controllers
 
     async def _record_runtime_config(self, status: Status) -> None:
         """Record the runtime configuration to cache.
