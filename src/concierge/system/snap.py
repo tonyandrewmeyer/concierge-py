@@ -348,5 +348,5 @@ def add_snap_support(system: System) -> None:
         return await snapd_client.snap_channels(snap)
 
     # Bind methods to the instance.
-    system.snap_info = snap_info  # ty: ignore[invalid-assignment]
-    system.snap_channels = snap_channels  # ty: ignore[invalid-assignment]
+    system.snap_info = snap_info
+    system.snap_channels = snap_channels
