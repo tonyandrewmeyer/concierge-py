@@ -2,7 +2,7 @@
 
 This file tracks synchronization status with [canonical/concierge](https://github.com/canonical/concierge) (the Go implementation).
 
-**Last sync check:** 2026-10-25
+**Last sync check:** 2026-11-08
 **Baseline:** concierge-py created 2024-10-10, syncing changes after that date
 
 ## Pending Changes
@@ -105,7 +105,7 @@ These changes don't apply to the Python implementation:
 - `c0a08551` - Replace `fatih/color` with stdlib ANSI (Go dependency reduction, no behavioural change)
 - `1d576fa` - Pin `extra-packages` spread test snap channels to `latest/stable` (Go spread integration test only, no unit-test analogue)
 - `5de3283` - Replace viper with Canonical's YAML loader (Python uses Pydantic/PyYAML, not viper)
-- Various Go dependency bumps and GitHub Action version bumps (`43771aa`, `3ee502c`, `defca86`, `9c4a90b`, `cf9537c`, `c549727`, `aeda3bc`, `90530f3`, `ef54599`, `3d81a68`, `1978fec`, `47e975c`, `9997760`, `4ddfab5`, `e1db0f7`, `e1d3560`, `2415af7`, `81a3d92`, `059f929`, `c98a771`, `8dc236c`, `83c8491`, `e84a35e`, `ad72040`)
+- Various Go dependency bumps and GitHub Action version bumps (`43771aa`, `3ee502c`, `defca86`, `9c4a90b`, `cf9537c`, `c549727`, `aeda3bc`, `90530f3`, `ef54599`, `3d81a68`, `1978fec`, `47e975c`, `9997760`, `4ddfab5`, `e1db0f7`, `e1d3560`, `2415af7`, `81a3d92`, `059f929`, `c98a771`, `8dc236c`, `83c8491`, `e84a35e`, `ad72040`, `7827c97`, `79f49c0`)
 - `91d233a` - Initial Sphinx/Diataxis docs site for the Go tool (`docs/` build, `canonical-sphinx` stack, Docs CI workflow) — concierge-py's docs live in the README, not a Sphinx site; no behavioural analogue
 - `f311d29` - Enable Read the Docs publishing for the Go docs site — infrastructure for the Sphinx site added in `91d233a`, not applicable here
 - `74d0c03` - Link to the newly-published Go docs site from README/CONTRIBUTING/SECURITY/goreleaser — links point at Go-specific published docs concierge-py doesn't have
