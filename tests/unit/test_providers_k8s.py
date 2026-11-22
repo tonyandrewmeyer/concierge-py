@@ -12,7 +12,8 @@ from concierge.config.models import (
     K8sConfig,
     ProviderConfig,
 )
-from concierge.providers.k8s import K8s
+from concierge.providers.k8s import DEFAULT_K8S_CHANNEL, K8s
+from concierge.system.models import InstalledSnapInfo, SnapInfo
 
 
 def _make_k8s_for_restore(
@@ -153,3 +154,63 @@ class TestK8sRestoreImageRegistry:
         await k8s._restore_image_registry()
 
         worker.remove_path.assert_awaited_once_with(Path("/etc/containerd/hosts.d/docker.io"))
+
+
+class TestK8sChannel:
+    """Tests for the K8s snap channel, where the default only applies to fresh installs."""
+
+    @pytest.mark.parametrize(
+        ("overrides", "config_channel", "snap_channel", "default_channel", "channel"),
+        [
+            (ConfigOverrides(), "", "", DEFAULT_K8S_CHANNEL, DEFAULT_K8S_CHANNEL),
+            (ConfigOverrides(), "1.32/candidate", "1.32/candidate", "", "1.32/candidate"),
+            (
+                ConfigOverrides(k8s_channel="1.32/edge"),
+                "1.32/candidate",
+                "1.32/edge",
+                "",
+                "1.32/edge",
+            ),
+        ],
+    )
+    def test_channels(
+        self,
+        overrides: ConfigOverrides,
+        config_channel: str,
+        snap_channel: str,
+        default_channel: str,
+        channel: str,
+    ) -> None:
+        config = ConciergeConfig(
+            providers=ProviderConfig(k8s=K8sConfig(enable=True, channel=config_channel)),
+            overrides=overrides,
+        )
+
+        k8s = K8s(MagicMock(), config)
+
+        assert k8s.snaps[0].channel == snap_channel
+        assert k8s.snaps[0].default_channel == default_channel
+        assert k8s.channel == channel
+
+    @pytest.mark.asyncio
+    async def test_installed_k8s_keeps_its_channel(self) -> None:
+        worker = MagicMock()
+        worker.run = AsyncMock(return_value=b"")
+        worker.snap_info = AsyncMock(
+            return_value=SnapInfo(
+                installed=True, active=True, tracking_channel="1.33-classic/stable", classic=True
+            )
+        )
+        worker.snap_installed_info = AsyncMock(return_value=InstalledSnapInfo())
+        config = ConciergeConfig(
+            providers=ProviderConfig(k8s=K8sConfig(enable=True)), overrides=ConfigOverrides()
+        )
+
+        await K8s(worker, config)._install()
+
+        snap_args = [
+            call.args[0].args
+            for call in worker.run.await_args_list
+            if call.args[0].executable == "snap"
+        ]
+        assert ["refresh", "k8s", "--classic"] in snap_args

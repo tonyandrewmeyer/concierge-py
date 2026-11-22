@@ -52,6 +52,16 @@ def channel_satisfied(wanted: str, tracking: str) -> bool:
     return normalise_channel(wanted) == normalise_channel(tracking)
 
 
+def lookup_channel(snap: Snap) -> str:
+    """Get the channel to look a snap up on.
+
+    This is the requested channel, or the default channel if none was requested.
+    The default is only installed from if the snap is not already installed, but
+    the snap store must still be asked about a channel to find its confinement.
+    """
+    return snap.channel or snap.default_channel
+
+
 class SnapHandler:
     """Handler for managing snap packages.
 
@@ -85,7 +95,7 @@ class SnapHandler:
         for snap in self.snaps:
             if await self.prepare_if_current(snap):
                 continue
-            snap_info = await self.system.snap_info(snap.name, snap.channel)
+            snap_info = await self.system.snap_info(snap.name, lookup_channel(snap))
             await self.prepare_snap(snap, snap_info)
 
     async def prepare_if_current(self, snap: Snap) -> bool:
@@ -163,6 +173,10 @@ class SnapHandler:
         """
         logger.debug("Installing snap", snap=snap.name)
 
+        # Without an explicit channel, an installed snap is refreshed on the
+        # channel it is already tracking: the default might be a different
+        # version, and moving to it could be a downgrade or an unsupported upgrade.
+        channel = snap.channel
         if snap_info.installed:
             await self._enable_if_disabled(snap.name, snap_info)
             action = "refresh"
@@ -170,12 +184,13 @@ class SnapHandler:
         else:
             action = "install"
             log_action = "Installed"
+            channel = lookup_channel(snap)
 
         # Build command arguments
         args = [action, snap.name]
 
-        if snap.channel:
-            args.extend(["--channel", snap.channel])
+        if channel:
+            args.extend(["--channel", channel])
 
         if snap.revision:
             args.extend(["--revision", snap.revision])

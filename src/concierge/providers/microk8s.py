@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 
 from concierge.core.logging import get_logger
 from concierge.packages.snap_handler import SnapHandler
-from concierge.providers.base import default_controller_name
+from concierge.providers.base import default_controller_name, installed_channel
 from concierge.providers.registry import build_hosts_toml
 from concierge.system.command import Command
 from concierge.system.helpers import run_with_retries, write_home_file
@@ -17,6 +17,8 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+# The channel from which MicroK8s is installed, if it is not already installed
+# and the latest strict version cannot be determined.
 DEFAULT_MICROK8S_CHANNEL = "1.32-strict/stable"
 
 
@@ -65,14 +67,11 @@ class MicroK8s:
         self._image_registry = config.providers.microk8s.image_registry
         self._skip_snap_refresh = config.overrides.skip_snap_refresh
 
-        # Determine channel with precedence: override > config > computed default
-        if config.overrides.microk8s_channel:
-            self.channel = config.overrides.microk8s_channel
-        elif config.providers.microk8s.channel:
-            self.channel = config.providers.microk8s.channel
-        else:
-            # Will be computed asynchronously in prepare
-            self.channel = ""
+        # The channel MicroK8s is installed from: the one requested in the
+        # config or overrides, otherwise the channel an existing install is
+        # tracking, otherwise the latest strict stable channel. The last two are
+        # found asynchronously in prepare.
+        self.channel = config.overrides.microk8s_channel or config.providers.microk8s.channel
 
         self.snaps = [
             Snap(name="microk8s", channel=self.channel),
@@ -85,10 +84,9 @@ class MicroK8s:
         Raises:
             Exception: If preparation fails
         """
-        # Compute default channel if not specified
         if not self.channel:
-            self.channel = await compute_default_channel(self.system)
-            self.snaps[0].channel = self.channel
+            self.snaps[0].default_channel = await compute_default_channel(self.system)
+            self.channel = self.snaps[0].default_channel
 
         await self._install()
         await self._init()
@@ -153,6 +151,11 @@ class MicroK8s:
         Raises:
             Exception: If installation fails
         """
+        # The group name depends on the channel, so it must reflect an existing install.
+        channel = await installed_channel(self.system, self.snaps[0])
+        if channel:
+            self.channel = channel
+
         snap_handler = SnapHandler(
             self.system, self.snaps, skip_refresh_if_current=self._skip_snap_refresh
         )
