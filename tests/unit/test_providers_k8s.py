@@ -153,3 +153,44 @@ class TestK8sRestoreImageRegistry:
         await k8s._restore_image_registry()
 
         worker.remove_path.assert_awaited_once_with(Path("/etc/containerd/hosts.d/docker.io"))
+
+
+class TestK8sDeconflictFirewall:
+    """Tests for K8s._deconflict_firewall and its place in prepare."""
+
+    @pytest.mark.asyncio
+    async def test_sets_forward_policy_to_accept_without_flushing(self) -> None:
+        """Only the FORWARD policy is changed, so existing rules are kept."""
+        k8s, _, _ = _make_k8s(needs_bootstrap=False)
+
+        await k8s._deconflict_firewall()
+
+        commands = [call.args[0] for call in k8s.system.run.await_args_list]
+        executables_and_args = [(c.executable, tuple(c.args)) for c in commands]
+        assert executables_and_args == [("iptables", ("-P", "FORWARD", "ACCEPT"))]
+
+    @pytest.mark.asyncio
+    async def test_prepare_deconflicts_after_install_before_bootstrap(self) -> None:
+        """The policy is set once iptables is installed and before the cluster starts."""
+        k8s, _, _ = _make_k8s(needs_bootstrap=False)
+        order: list[str] = []
+        for step in (
+            "_install",
+            "_deconflict_firewall",
+            "_configure_image_registry",
+            "_init",
+            "_configure_features",
+            "_setup_kubectl",
+        ):
+            setattr(k8s, step, AsyncMock(side_effect=lambda step=step: order.append(step)))
+
+        await k8s.prepare()
+
+        assert order == [
+            "_install",
+            "_deconflict_firewall",
+            "_configure_image_registry",
+            "_init",
+            "_configure_features",
+            "_setup_kubectl",
+        ]
