@@ -66,6 +66,7 @@ class K8s:
             Exception: If preparation fails
         """
         await self._install()
+        await self._deconflict_firewall()
         await self._configure_image_registry()
         await self._init()
         await self._configure_features()
@@ -150,6 +151,20 @@ class K8s:
 
         # Run installations concurrently
         await asyncio.gather(install_iptables(), install_snaps())
+
+    async def _deconflict_firewall(self) -> None:
+        """Ensure that K8s pods can reach the network through the host.
+
+        Docker sets the iptables FORWARD chain's default policy to DROP, which
+        blocks pod traffic (including DNS lookups from CoreDNS) leaving the
+        host. Only the policy is changed: unlike the LXD provider, the chain is
+        not flushed, so any rules K8s or Docker have added are kept.
+
+        Raises:
+            CommandError: If the iptables policy cannot be set
+        """
+        cmd = Command(executable="iptables", args=["-P", "FORWARD", "ACCEPT"])
+        await self.system.run(cmd)
 
     async def _init(self) -> None:
         """Initialize K8s cluster.
