@@ -40,6 +40,7 @@ All changes have been ported. See branches below for PRs.
 | [#67](https://github.com/tonyandrewmeyer/concierge-py/pull/67) | `feat/log-snap-revision-version` | `304bd6e` | Log snap revision and version (draft: large) |
 | [#68](https://github.com/tonyandrewmeyer/concierge-py/pull/68) | `feat/skip-snap-refresh` | `a285abe` | Add `--skip-snap-refresh` (draft: large; stacked on #67) |
 | [#69](https://github.com/tonyandrewmeyer/concierge-py/pull/69) | `fix/k8s-microk8s-default-channel-fresh-install` | `4564973` | Only apply the default k8s/microk8s channels to fresh installs (stacked on #68) |
+| [#71](https://github.com/tonyandrewmeyer/concierge-py/pull/71) | `test/spread-uv-lock-before-charmcraft-pack` | `6ea98ec` | Run `uv lock` before packing the `charmcraft init` template in the spread test |
 
 ### Previously Merged
 
@@ -116,5 +117,4 @@ These changes don't apply to the Python implementation:
 - `90cb9ab` - Add a Workshop dev-environment config (`.workshop/dev.yaml`, Go SDK, `go build`/`test`/`vet` actions, Pi agent harness hook) — Go-toolchain-specific dev sandbox tooling with no uv/ruff/ty analogue
 - `1ba9693` - Describe Concierge's security model in the Go docs site (`docs/explanation/security.md`) — documentation for the Sphinx site concierge-py doesn't have; the behaviour it describes (0600 files, SEC0045 events) is tracked in #57 and #36
 - `d62a760` - Share format/lint and test jobs between push and release Go workflows via reusable `_checks.yaml`, plus an `All tests passed` aggregator — Go toolchain jobs (go fmt, staticcheck, govulncheck, spread matrix); concierge-py's `ci.yaml` has no equivalent split, so needs human review only if a required-check aggregator is wanted
-- `6ea98ec` - Run `uv lock` before packing the `charmcraft init` template in the `provider-lxd-init-no-bootstrap` spread test (Go spread integration test only, no unit-test analogue)
 - `01caaef` - Fix zizmor `ref-version-mismatch` comments and switch to `$/` self-repository reusable-workflow calls in the Go repo's own workflows (`_tests.yaml`, `release.yaml`, `tiobe.yaml`, etc.) — those workflows and pins don't exist in concierge-py
