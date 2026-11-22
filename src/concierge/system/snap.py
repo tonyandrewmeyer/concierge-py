@@ -1,6 +1,7 @@
 """Snapd HTTP API client for querying snap information."""
 
 import asyncio
+import dataclasses
 import http.client
 import json
 import socket
@@ -8,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from concierge.core.logging import get_logger
-from concierge.system.models import SnapInfo
+from concierge.system.models import InstalledSnapInfo, SnapInfo
 from concierge.system.retry import retry_with_backoff
 
 if TYPE_CHECKING:
@@ -87,27 +88,20 @@ class SnapdClient:
         Raises:
             Exception: If snapd API fails
         """
-        # Check if snap is installed and get tracking channel
-        installed, active, tracking_channel = await self._snap_installed_info(snap_name)
-
-        # Check if snap uses classic confinement
+        installed = await self.snap_installed_info(snap_name)
         classic = await self._snap_is_classic(snap_name, channel)
+        info = SnapInfo(**dataclasses.asdict(installed), classic=classic)
 
-        logger.debug(
-            "Queried snapd API",
-            snap=snap_name,
-            installed=installed,
-            active=active,
-            classic=classic,
-            tracking=tracking_channel,
-        )
-
-        return SnapInfo(
-            installed=installed,
-            active=active,
-            classic=classic,
-            tracking_channel=tracking_channel,
-        )
+        attrs: dict[str, object] = {"installed": info.installed, "classic": classic}
+        if info.installed:
+            attrs.update(
+                active=info.active,
+                version=info.version,
+                revision=info.revision,
+                tracking=info.tracking_channel,
+            )
+        logger.debug("Queried snapd API", snap=snap_name, **attrs)
+        return info
 
     async def snap_channels(self, snap_name: str) -> list[str]:
         """Get list of available channels for a snap.
@@ -131,8 +125,8 @@ class SnapdClient:
 
         return channels
 
-    async def _snap_installed_info(self, snap_name: str) -> tuple[bool, bool, str]:
-        """Check if snap is installed and get its tracking channel.
+    async def snap_installed_info(self, snap_name: str) -> InstalledSnapInfo:
+        """Get details of the locally installed snap, without querying the snap store.
 
         snapd reports "active" for a normal installed-and-enabled snap, and
         "installed" for a snap that is installed but disabled (e.g. while a
@@ -143,24 +137,30 @@ class SnapdClient:
             snap_name: Name of the snap
 
         Returns:
-            Tuple of (is_installed, is_active, tracking_channel). `is_active`
-            is True only for the "active" status; a disabled snap has
-            `is_installed=True` and `is_active=False`.
+            InstalledSnapInfo. `active` is True only for the "active" status; a
+            disabled snap has `installed=True` and `active=False`.
+
+        Raises:
+            Exception: If snapd cannot be queried. A snap that is not installed
+                is not an error.
         """
         try:
             snap_data = await self._get_snap(snap_name)
         except SnapNotInstalledError:
-            return False, False, ""
+            return InstalledSnapInfo()
 
-        if snap_data:
-            status = snap_data.get("status")
-            if status in ("active", "installed"):
-                tracking_channel = snap_data.get("tracking-channel", "")
-                if not tracking_channel:
-                    tracking_channel = snap_data.get("channel", "")
-                return True, status == "active", tracking_channel
+        status = snap_data.get("status") if snap_data else None
+        if status not in ("active", "installed"):
+            return InstalledSnapInfo()
 
-        return False, False, ""
+        tracking_channel = snap_data.get("tracking-channel", "") or snap_data.get("channel", "")
+        return InstalledSnapInfo(
+            installed=True,
+            active=status == "active",
+            tracking_channel=tracking_channel,
+            revision=str(snap_data.get("revision", "")),
+            version=str(snap_data.get("version", "")),
+        )
 
     async def _snap_is_classic(self, snap_name: str, channel: str) -> bool:
         """Check if snap uses classic confinement.
@@ -334,7 +334,7 @@ class SnapdClient:
 def add_snap_support(system: System) -> None:
     """Add snap support methods to a System instance.
 
-    This function patches the System class to add snap_info and snap_channels methods.
+    This function patches the System class to add the snapd query methods.
 
     Args:
         system: System instance to patch
@@ -344,9 +344,13 @@ def add_snap_support(system: System) -> None:
     async def snap_info(snap: str, channel: str = "") -> SnapInfo:
         return await snapd_client.snap_info(snap, channel)
 
+    async def snap_installed_info(snap: str) -> InstalledSnapInfo:
+        return await snapd_client.snap_installed_info(snap)
+
     async def snap_channels(snap: str) -> list[str]:
         return await snapd_client.snap_channels(snap)
 
     # Bind methods to the instance.
     system.snap_info = snap_info
+    system.snap_installed_info = snap_installed_info
     system.snap_channels = snap_channels

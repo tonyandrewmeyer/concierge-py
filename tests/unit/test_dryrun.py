@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from concierge.system.command import Command
-from concierge.system.dryrun import DryRunWorker
-from concierge.system.models import SnapInfo
+from concierge.system.dryrun import DryRunWorker, is_dry_run
+from concierge.system.models import InstalledSnapInfo, SnapInfo
 
 MOCK_SNAP_INFO = SnapInfo(installed=True, classic=False, tracking_channel="latest/stable")
 
@@ -25,6 +25,9 @@ def mock_system() -> MagicMock:
     system.read_file = AsyncMock(return_value=b"file contents")
     system.snap_info = AsyncMock(return_value=MOCK_SNAP_INFO)
     system.snap_channels = AsyncMock(return_value=["latest/stable"])
+    system.snap_installed_info = AsyncMock(
+        return_value=InstalledSnapInfo(installed=True, revision="42", version="1.0")
+    )
     return system
 
 
@@ -79,6 +82,16 @@ class TestDryRunWorker:
         result = await worker.snap_info("juju")
         assert result.installed is True
         mock_system.snap_info.assert_called_once()
+
+    async def test_snap_installed_info_delegates(self, mock_system: MagicMock) -> None:
+        worker = DryRunWorker(mock_system)
+        result = await worker.snap_installed_info("juju")
+        assert result.revision == "42"
+        mock_system.snap_installed_info.assert_awaited_once_with("juju")
+
+    def test_is_dry_run(self, mock_system: MagicMock) -> None:
+        assert is_dry_run(DryRunWorker(mock_system)) is True
+        assert is_dry_run(mock_system) is False
 
     async def test_snap_channels_delegates(self, mock_system: MagicMock) -> None:
         worker = DryRunWorker(mock_system)

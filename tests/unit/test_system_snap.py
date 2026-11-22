@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from concierge.system.models import InstalledSnapInfo, SnapInfo
 from concierge.system.snap import (
     SnapdAPIError,
     SnapdClient,
@@ -109,7 +110,7 @@ class TestFindSnap:
 
 
 class TestSnapInstalledInfo:
-    """`_snap_installed_info` swallows `SnapNotInstalledError` and only that."""
+    """`snap_installed_info` swallows `SnapNotInstalledError` and only that."""
 
     @pytest.mark.asyncio
     async def test_missing_snap_returns_defaults(self) -> None:
@@ -118,9 +119,9 @@ class TestSnapInstalledInfo:
             side_effect=SnapNotInstalledError("snap not installed: juju"),
         )
 
-        installed, active, tracking = await client._snap_installed_info("juju")
+        info = await client.snap_installed_info("juju")
 
-        assert (installed, active, tracking) == (False, False, "")
+        assert info == InstalledSnapInfo()
 
     @pytest.mark.asyncio
     async def test_other_errors_propagate(self) -> None:
@@ -130,7 +131,7 @@ class TestSnapInstalledInfo:
         )
 
         with pytest.raises(SnapdAPIError):
-            await client._snap_installed_info("juju")
+            await client.snap_installed_info("juju")
 
     @pytest.mark.asyncio
     async def test_active_snap_reports_tracking_channel(self) -> None:
@@ -139,9 +140,82 @@ class TestSnapInstalledInfo:
             return_value={"status": "active", "tracking-channel": "3/stable"},
         )
 
-        installed, active, tracking = await client._snap_installed_info("juju")
+        info = await client.snap_installed_info("juju")
 
-        assert (installed, active, tracking) == (True, True, "3/stable")
+        assert (info.installed, info.active, info.tracking_channel) == (True, True, "3/stable")
+
+    @pytest.mark.asyncio
+    async def test_reports_revision_and_version(self) -> None:
+        client = SnapdClient()
+        client._get_snap = AsyncMock(  # ty: ignore[invalid-assignment]
+            return_value={
+                "status": "installed",
+                "channel": "latest/stable",
+                "revision": "1234",
+                "version": "5.21.3",
+            },
+        )
+
+        info = await client.snap_installed_info("lxd")
+
+        assert info == InstalledSnapInfo(
+            installed=True,
+            active=False,
+            tracking_channel="latest/stable",
+            revision="1234",
+            version="5.21.3",
+        )
+
+    @pytest.mark.asyncio
+    async def test_other_status_is_not_installed(self) -> None:
+        client = SnapdClient()
+        client._get_snap = AsyncMock(  # ty: ignore[invalid-assignment]
+            return_value={"status": "available", "revision": "1"},
+        )
+
+        assert await client.snap_installed_info("juju") == InstalledSnapInfo()
+
+
+class TestSnapInfo:
+    """`snap_info` combines the installed details with the store confinement."""
+
+    @pytest.mark.asyncio
+    async def test_combines_installed_info_and_classic(self) -> None:
+        client = SnapdClient()
+        installed = InstalledSnapInfo(
+            installed=True,
+            active=True,
+            tracking_channel="3/stable",
+            revision="31337",
+            version="3.6.9",
+        )
+        client.snap_installed_info = AsyncMock(  # ty: ignore[invalid-assignment]
+            return_value=installed,
+        )
+        client._snap_is_classic = AsyncMock(return_value=True)  # ty: ignore[invalid-assignment]
+
+        info = await client.snap_info("juju", "3/stable")
+
+        assert info == SnapInfo(
+            installed=True,
+            active=True,
+            tracking_channel="3/stable",
+            revision="31337",
+            version="3.6.9",
+            classic=True,
+        )
+
+    @pytest.mark.asyncio
+    async def test_snapd_failure_is_an_error(self) -> None:
+        """Failing to query the local snapd is reported, not treated as not installed."""
+        client = SnapdClient()
+        client._get_snap = AsyncMock(  # ty: ignore[invalid-assignment]
+            side_effect=SnapdAPIError("Snapd API error: boom", 500),
+        )
+        client._snap_is_classic = AsyncMock(return_value=False)  # ty: ignore[invalid-assignment]
+
+        with pytest.raises(SnapdAPIError):
+            await client.snap_info("juju")
 
 
 class TestSnapChannels:
@@ -264,6 +338,8 @@ class TestUnixSocketTransport:
                         "name": "juju",
                         "status": "active",
                         "tracking-channel": "3/stable",
+                        "revision": "31337",
+                        "version": "3.6.9",
                     },
                 },
             ),
@@ -272,10 +348,16 @@ class TestUnixSocketTransport:
         with _snapd_server(socket_path, routes):
             client = SnapdClient(socket_path)
             result = await client._request("GET", "/v2/snaps/juju")
-            installed, active, tracking = await client._snap_installed_info("juju")
+            info = await client.snap_installed_info("juju")
 
-        assert result == {"name": "juju", "status": "active", "tracking-channel": "3/stable"}
-        assert (installed, active, tracking) == (True, True, "3/stable")
+        assert result["tracking-channel"] == "3/stable"
+        assert info == InstalledSnapInfo(
+            installed=True,
+            active=True,
+            tracking_channel="3/stable",
+            revision="31337",
+            version="3.6.9",
+        )
 
     @pytest.mark.asyncio
     async def test_find_keeps_channels_map(self, tmp_path: Path) -> None:
