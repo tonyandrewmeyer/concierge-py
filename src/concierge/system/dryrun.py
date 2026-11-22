@@ -7,8 +7,16 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from concierge.system.command import Command
-    from concierge.system.models import SnapInfo
+    from concierge.system.models import InstalledSnapInfo, SnapInfo
     from concierge.system.worker import Worker
+
+
+def is_dry_run(worker: Worker) -> bool:
+    """Report whether commands that make changes are being skipped.
+
+    In a dry run, the system state does not reflect those commands.
+    """
+    return isinstance(worker, DryRunWorker)
 
 
 class DryRunWorker:
@@ -51,6 +59,9 @@ class DryRunWorker:
 
     async def snap_info(self, snap: str, channel: str = "") -> SnapInfo:
         return await self._real.snap_info(snap, channel)
+
+    async def snap_installed_info(self, snap: str) -> InstalledSnapInfo:
+        return await self._real.snap_installed_info(snap)
 
     async def snap_channels(self, snap: str) -> list[str]:
         return await self._real.snap_channels(snap)

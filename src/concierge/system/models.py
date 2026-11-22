@@ -8,21 +8,38 @@ from dataclasses import dataclass, field
 
 
 @dataclass
-class SnapInfo:
-    """Information about a snap from the snapd API.
+class InstalledSnapInfo:
+    """Information about the locally installed copy of a snap.
+
+    This is fetched from the snapd API without querying the snap store.
 
     Attributes:
         installed: Whether the snap is currently installed (active or disabled)
         active: Whether the snap is installed and enabled. False for installed
             but disabled snaps (e.g. during a refresh).
-        classic: Whether the snap uses classic confinement
         tracking_channel: The channel the snap is tracking (if installed)
+        revision: The installed revision (if installed)
+        version: The installed version (if installed)
     """
 
-    installed: bool
-    classic: bool
+    installed: bool = False
     active: bool = False
     tracking_channel: str = ""
+    revision: str = ""
+    version: str = ""
+
+
+@dataclass
+class SnapInfo(InstalledSnapInfo):
+    """Information about a snap from the snapd API.
+
+    This includes details that require querying the snap store.
+
+    Attributes:
+        classic: Whether the snap uses classic confinement
+    """
+
+    classic: bool = False
 
 
 @dataclass

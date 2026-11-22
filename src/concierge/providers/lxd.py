@@ -11,6 +11,7 @@ from concierge.system.models import Snap
 
 if TYPE_CHECKING:
     from concierge.config.models import ConciergeConfig
+    from concierge.system.models import InstalledSnapInfo
     from concierge.system.worker import Worker
 
 logger = get_logger(__name__)
@@ -106,17 +107,20 @@ class LXD:
         Raises:
             Exception: If installation fails
         """
-        # Check if LXD needs to be stopped for refresh
-        restart = await self._workaround_refresh()
+        snap = self.snaps[0]
 
-        # Install/refresh LXD
-        snap_handler = SnapHandler(self.system, self.snaps)
-        await snap_handler.prepare()
+        # Look up the snap details once, before touching LXD. This queries the
+        # snap store, which may fail, and that should leave LXD as it was.
+        snap_info = await self.system.snap_info(snap.name, snap.channel)
 
-        # Restart LXD if we stopped it
-        if restart:
-            cmd = Command(executable="snap", args=["start", self.name()])
-            await run_exclusive(self.system, cmd)
+        restart = await self._workaround_refresh(snap_info)
+        try:
+            await SnapHandler(self.system, self.snaps).prepare_snap(snap, snap_info)
+        finally:
+            # Start LXD again even if the refresh failed, so it is not left stopped.
+            if restart:
+                cmd = Command(executable="snap", args=["start", self.name()])
+                await run_exclusive(self.system, cmd)
 
     async def _init(self) -> None:
         """Initialize LXD with minimal configuration.
@@ -166,10 +170,13 @@ class LXD:
         cmd2 = Command(executable="iptables", args=["-P", "FORWARD", "ACCEPT"])
         await self.system.run(cmd2)
 
-    async def _workaround_refresh(self) -> bool:
+    async def _workaround_refresh(self, snap_info: InstalledSnapInfo) -> bool:
         """Stop LXD before channel refresh if needed.
 
         This works around a snap refresh issue with missing socket files.
+
+        Args:
+            snap_info: Details of the installed LXD snap
 
         Returns:
             True if LXD was stopped and needs to be restarted
@@ -177,8 +184,6 @@ class LXD:
         Raises:
             Exception: If snap operations fail
         """
-        snap_info = await self.system.snap_info(self.name(), self.channel)
-
         # Only stop if installed AND channel is changing
         if snap_info.installed:
             # No stop needed if:

@@ -6,7 +6,7 @@ if TYPE_CHECKING:
     from pathlib import Path
 
     from concierge.system.command import Command
-    from concierge.system.models import SnapInfo
+    from concierge.system.models import InstalledSnapInfo, SnapInfo
 
 
 @runtime_checkable
@@ -43,6 +43,13 @@ class Worker(Protocol):
 
     async def snap_info(self, snap: str, channel: str = "") -> SnapInfo:
         """Get information about a snap from the snapd API."""
+        ...
+
+    async def snap_installed_info(self, snap: str) -> InstalledSnapInfo:
+        """Get information about an installed snap without querying the snap store.
+
+        A snap that is not installed is not an error, but failing to query snapd is.
+        """
         ...
 
     async def snap_channels(self, snap: str) -> list[str]:

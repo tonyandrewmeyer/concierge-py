@@ -1,12 +1,17 @@
 """Unit tests for the SnapHandler."""
 
+import asyncio
+import io
+import logging
 from typing import TYPE_CHECKING
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from concierge.packages import snap_handler as snap_handler_module
 from concierge.packages.snap_handler import SnapHandler
-from concierge.system.models import Snap, SnapInfo
+from concierge.system.dryrun import DryRunWorker
+from concierge.system.models import InstalledSnapInfo, Snap, SnapInfo
 
 if TYPE_CHECKING:
     from concierge.system.command import Command
@@ -15,6 +20,7 @@ if TYPE_CHECKING:
 def _make_handler(snap: Snap, snap_info: SnapInfo) -> tuple[SnapHandler, MagicMock]:
     worker = MagicMock()
     worker.snap_info = AsyncMock(return_value=snap_info)
+    worker.snap_installed_info = AsyncMock(return_value=InstalledSnapInfo())
     worker.run = AsyncMock()
     worker.run_exclusive = AsyncMock()
     handler = SnapHandler(worker, [snap])
@@ -128,3 +134,161 @@ class TestSnapHandlerInstall:
         assert ("snap", "install") in actions
         assert ("snap", "enable") not in actions
         assert ("snap", "refresh") not in actions
+
+
+def _snap_log_messages(caplog: pytest.LogCaptureFixture) -> list[str]:
+    return [r.getMessage() for r in caplog.records if r.name == snap_handler_module.__name__]
+
+
+class TestSnapHandlerLogging:
+    """Tests for the version, revision and tracking details in snap log lines."""
+
+    @pytest.mark.asyncio
+    async def test_install_logs_new_details(self, caplog: pytest.LogCaptureFixture) -> None:
+        handler, worker = _make_handler(
+            Snap(name="juju", channel="3/stable"), SnapInfo(installed=False)
+        )
+        worker.snap_installed_info.return_value = InstalledSnapInfo(
+            installed=True, active=True, tracking_channel="3/stable", revision="31", version="3.6"
+        )
+
+        with caplog.at_level(logging.INFO):
+            await handler.prepare()
+
+        assert _snap_log_messages(caplog) == [
+            "Installed snap [revision=31 snap=juju tracking=3/stable version=3.6]"
+        ]
+        worker.snap_installed_info.assert_awaited_once_with("juju")
+
+    @pytest.mark.asyncio
+    async def test_refresh_logs_new_and_previous_details(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        handler, worker = _make_handler(
+            Snap(name="juju", channel="3/stable"),
+            SnapInfo(
+                installed=True,
+                active=True,
+                tracking_channel="2.9/stable",
+                revision="20",
+                version="2.9",
+            ),
+        )
+        worker.snap_installed_info.return_value = InstalledSnapInfo(
+            installed=True, active=True, tracking_channel="3/stable", revision="31", version="3.6"
+        )
+
+        with caplog.at_level(logging.INFO):
+            await handler.prepare()
+
+        assert _snap_log_messages(caplog) == [
+            "Refreshed snap [from.revision=20 from.tracking=2.9/stable from.version=2.9 "
+            "revision=31 snap=juju tracking=3/stable version=3.6]"
+        ]
+
+    @pytest.mark.asyncio
+    async def test_enable_logs_details(self, caplog: pytest.LogCaptureFixture) -> None:
+        handler, _ = _make_handler(
+            Snap(name="juju"),
+            SnapInfo(
+                installed=True,
+                active=False,
+                tracking_channel="3/stable",
+                revision="31",
+                version="3.6",
+            ),
+        )
+
+        with caplog.at_level(logging.INFO):
+            await handler.prepare()
+
+        assert (
+            "Enabled disabled snap [revision=31 snap=juju tracking=3/stable version=3.6]"
+            in _snap_log_messages(caplog)
+        )
+
+    @pytest.mark.asyncio
+    async def test_lookup_failure_still_logs_previous_details(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        handler, worker = _make_handler(
+            Snap(name="juju"),
+            SnapInfo(
+                installed=True,
+                active=True,
+                tracking_channel="3/stable",
+                revision="30",
+                version="3.5",
+            ),
+        )
+        worker.snap_installed_info.side_effect = RuntimeError("snapd is down")
+
+        with caplog.at_level(logging.INFO):
+            await handler.prepare()
+
+        assert _snap_log_messages(caplog) == [
+            "Refreshed snap [from.revision=30 from.tracking=3/stable from.version=3.5 snap=juju]"
+        ]
+
+    @pytest.mark.asyncio
+    async def test_lookup_is_bounded(
+        self, caplog: pytest.LogCaptureFixture, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(snap_handler_module, "SNAP_LOG_LOOKUP_TIMEOUT", 0.01)
+        handler, worker = _make_handler(Snap(name="juju"), SnapInfo(installed=False))
+
+        async def hang(_: str) -> InstalledSnapInfo:
+            await asyncio.sleep(10)
+            return InstalledSnapInfo()
+
+        worker.snap_installed_info.side_effect = hang
+
+        with caplog.at_level(logging.INFO):
+            await handler.prepare()
+
+        assert _snap_log_messages(caplog) == ["Installed snap [snap=juju]"]
+
+    @pytest.mark.asyncio
+    async def test_lookup_skipped_when_info_disabled(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        handler, worker = _make_handler(Snap(name="juju"), SnapInfo(installed=False))
+
+        with caplog.at_level(logging.WARNING):
+            await handler.prepare()
+
+        worker.snap_installed_info.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_lookup_skipped_in_dry_run(self, caplog: pytest.LogCaptureFixture) -> None:
+        real = MagicMock()
+        real.snap_info = AsyncMock(return_value=SnapInfo(installed=False))
+        real.snap_installed_info = AsyncMock()
+        real.run = AsyncMock()
+        handler = SnapHandler(DryRunWorker(real, out=io.StringIO()), [Snap(name="juju")])
+
+        with caplog.at_level(logging.INFO):
+            await handler.prepare()
+
+        real.snap_installed_info.assert_not_awaited()
+        assert _snap_log_messages(caplog) == ["Installed snap [snap=juju]"]
+
+
+class TestSnapHandlerPrepareSnap:
+    """Tests for SnapHandler.prepare_snap, which reuses details looked up by the caller."""
+
+    @pytest.mark.asyncio
+    async def test_does_not_look_up_snap_again(self) -> None:
+        handler, worker = _make_handler(
+            Snap(name="lxd", channel="5.21/stable", connections=["lxd:foo"]),
+            SnapInfo(installed=False),
+        )
+
+        await handler.prepare_snap(handler.snaps[0], SnapInfo(installed=False, classic=True))
+
+        worker.snap_info.assert_not_awaited()
+        args = [c.args for c in _commands(worker)]
+        assert args == [
+            ["install", "lxd", "--channel", "5.21/stable", "--classic"],
+            ["connect", "lxd:foo"],
+        ]

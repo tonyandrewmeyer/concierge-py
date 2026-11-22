@@ -14,7 +14,7 @@ from concierge.system.command import Command, CommandError
 from concierge.system.snap import SnapdClient
 
 if TYPE_CHECKING:
-    from concierge.system.models import SnapInfo
+    from concierge.system.models import InstalledSnapInfo, SnapInfo
 
 logger = get_logger(__name__)
 
@@ -250,6 +250,9 @@ class System:
 
     async def snap_info(self, snap: str, channel: str = "") -> SnapInfo:
         return await self._snapd_client.snap_info(snap, channel)
+
+    async def snap_installed_info(self, snap: str) -> InstalledSnapInfo:
+        return await self._snapd_client.snap_installed_info(snap)
 
     async def snap_channels(self, snap: str) -> list[str]:
         return await self._snapd_client.snap_channels(snap)
