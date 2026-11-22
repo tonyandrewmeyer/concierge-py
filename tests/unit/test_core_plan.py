@@ -174,6 +174,33 @@ class TestPlanInit:
         jq = next(s for s in plan.snaps if s.name == "jq")
         assert jq.channel == "latest/edge"
 
+    def test_plan_init_extra_snaps_already_merged_are_not_duplicated(self) -> None:
+        """Extra snaps that load_config merged into host.snaps are only listed once."""
+        config = ConciergeConfig(
+            host=HostConfig(
+                snaps={
+                    "charmcraft": SnapConfig(channel="latest/stable"),
+                    "hello-world": SnapConfig(channel="latest/edge"),
+                }
+            ),
+            overrides=ConfigOverrides(extra_snaps=["hello-world/latest/edge"]),
+        )
+        plan = Plan(config, Mock())
+
+        assert [(s.name, s.channel) for s in plan.snaps] == [
+            ("charmcraft", "latest/stable"),
+            ("hello-world", "latest/edge"),
+        ]
+
+    def test_plan_init_extra_snap_channel_wins_over_host_snap(self) -> None:
+        config = ConciergeConfig(
+            host=HostConfig(snaps={"jq": SnapConfig(channel="latest/stable")}),
+            overrides=ConfigOverrides(extra_snaps=["jq/latest/edge", "jq"]),
+        )
+        plan = Plan(config, Mock())
+
+        assert [(s.name, s.channel) for s in plan.snaps] == [("jq", "latest/edge")]
+
     def test_plan_init_with_extra_snap_override(self) -> None:
         """Test that channel override applies to extra snaps."""
         config = ConciergeConfig(
@@ -209,6 +236,15 @@ class TestPlanInit:
         assert "python3-pip" in plan.debs
         assert "git" in plan.debs
         assert "curl" in plan.debs
+
+    def test_plan_init_extra_debs_already_merged_are_not_duplicated(self) -> None:
+        config = ConciergeConfig(
+            host=HostConfig(packages=["python3-pip", "git"]),
+            overrides=ConfigOverrides(extra_debs=["git", "curl"]),
+        )
+        plan = Plan(config, Mock())
+
+        assert plan.debs == ["python3-pip", "git", "curl"]
 
     def test_plan_init_with_providers(self) -> None:
         """Test Plan initialization with enabled providers."""
