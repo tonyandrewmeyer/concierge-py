@@ -1,0 +1,5 @@
+juju:
+  disable: true
+providers:
+  microk8s:
+    enable: true

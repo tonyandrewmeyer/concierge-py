@@ -124,17 +124,27 @@ class Plan:
             )
             self.snaps.append(snap)
 
-        # Add extra snaps from overrides
+        # Add extra snaps from overrides. `load_config` has usually merged these
+        # into `config.host.snaps` already, so a snap is only listed once:
+        # preparing it a second time would refresh it again, or skip it with
+        # --skip-snap-refresh and log that it was already current.
+        snaps_by_name = {snap.name: snap for snap in self.snaps}
         for snap_str in config.overrides.extra_snaps:
             snap = Snap.from_string(snap_str)
             # Check for channel override
             channel_override = _get_snap_channel_override(config, snap.name)
             if channel_override:
                 snap.channel = channel_override
-            self.snaps.append(snap)
+            existing = snaps_by_name.get(snap.name)
+            if existing is None:
+                self.snaps.append(snap)
+                snaps_by_name[snap.name] = snap
+            elif snap.channel:
+                existing.channel = snap.channel
 
-        # Build list of debs
-        self.debs = config.host.packages + config.overrides.extra_debs
+        # Build list of debs, without the duplicates that `load_config` merging
+        # the extra debs into `config.host.packages` would otherwise add.
+        self.debs = list(dict.fromkeys(config.host.packages + config.overrides.extra_debs))
 
         # Build list of providers
         for provider_name in SUPPORTED_PROVIDERS:
@@ -166,7 +176,11 @@ class Plan:
         await self._validate()
 
         # Prepare/restore packages concurrently
-        snap_handler = SnapHandler(self.system, self.snaps)
+        snap_handler = SnapHandler(
+            self.system,
+            self.snaps,
+            skip_refresh_if_current=self.config.overrides.skip_snap_refresh,
+        )
         deb_handler = DebHandler(self.system, self.debs)
 
         await asyncio.gather(

@@ -143,6 +143,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "--extra-debs", action="append", help="Additional deb packages to install"
     )
     prepare.add_argument(
+        "--skip-snap-refresh",
+        action="store_true",
+        help="Don't refresh snaps that are already installed on the requested channel",
+    )
+    prepare.add_argument(
         "--dry-run",
         action="store_true",
         help="Show what would be done without making changes",
@@ -211,6 +216,7 @@ def _prepare(args: argparse.Namespace) -> None:
         # Merge CLI and env extra snaps/debs (CLI doesn't replace env, they combine)
         extra_snaps=extra_snaps + env_overrides.extra_snaps,
         extra_debs=extra_debs + env_overrides.extra_debs,
+        skip_snap_refresh=args.skip_snap_refresh or env_overrides.skip_snap_refresh,
     )
 
     try:

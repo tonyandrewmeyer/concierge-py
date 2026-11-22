@@ -90,6 +90,7 @@ the environment variable version will always take precedent. The equivalents are
 | `--google-credential-file` | `CONCIERGE_GOOGLE_CREDENTIAL_FILE` |
 |      `--extra-snaps`       |      `CONCIERGE_EXTRA_SNAPS`       |
 |       `--extra-debs`       |       `CONCIERGE_EXTRA_DEBS`       |
+|   `--skip-snap-refresh`    |   `CONCIERGE_SKIP_SNAP_REFRESH`    |
 
 ### Command Examples
 
@@ -176,7 +177,9 @@ providers:
     # (Optional): A map of bootstrap-constraints to set when bootstrapping the Juju controller.
     bootstrap-constraints:
       <bootstrap-constraint>: <value>
-    # (Optional): Channel from which to install MicroK8s.
+    # (Optional): Channel from which to install MicroK8s. If omitted, a fresh install uses
+    # the latest strict stable channel, and an existing install stays on the channel it is
+    # tracking.
     channel: <channel>
     # (Optional): MicroK8s addons to enable.
     addons:
@@ -191,7 +194,9 @@ providers:
     # (Optional) Name of the Juju controller to bootstrap. Defaults to concierge-<provider>.
     # Must match ^[a-z0-9]+[a-z0-9-]*$ and be unique across bootstrapped providers.
     controller-name: <name>
-    # (Optional): Channel from which to install K8s.
+    # (Optional): Channel from which to install K8s. If omitted, a fresh install uses
+    # `1.32-classic/stable` (the Canonical Kubernetes LTS), and an existing install stays
+    # on the channel it is tracking.
     channel: <channel>
     # (Optional): A map of model-defaults to set when bootstrapping the Juju controller.
     model-defaults:

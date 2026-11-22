@@ -154,7 +154,11 @@ class JujuHandler:
         Raises:
             Exception: If installation fails
         """
-        snap_handler = SnapHandler(self.system, self.snaps)
+        snap_handler = SnapHandler(
+            self.system,
+            self.snaps,
+            skip_refresh_if_current=self.config.overrides.skip_snap_refresh,
+        )
         await snap_handler.prepare()
 
     async def _write_credentials(self) -> None:

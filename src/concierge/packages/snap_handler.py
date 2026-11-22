@@ -10,7 +10,7 @@ from concierge.system.dryrun import is_dry_run
 from concierge.system.helpers import run_exclusive
 
 if TYPE_CHECKING:
-    from concierge.system.models import Snap, SnapInfo
+    from concierge.system.models import InstalledSnapInfo, Snap, SnapInfo
     from concierge.system.worker import Worker
 
 logger = get_logger(__name__)
@@ -20,6 +20,48 @@ logger = get_logger(__name__)
 SNAP_LOG_LOOKUP_TIMEOUT = 5.0
 
 
+_SNAP_RISKS = frozenset({"stable", "candidate", "beta", "edge"})
+
+
+def normalise_channel(channel: str) -> str:
+    """Expand a snap channel to the track/risk[/branch] form snapd reports.
+
+    "stable" becomes "latest/stable", "3" becomes "3/stable", and "edge/fix"
+    becomes "latest/edge/fix". An empty channel stays empty.
+    """
+    if not channel:
+        return ""
+    parts = channel.split("/")
+    if parts[0] in _SNAP_RISKS and len(parts) <= 2:
+        return f"latest/{channel}"
+    if len(parts) == 1:
+        return f"{channel}/stable"
+    return channel
+
+
+def channel_satisfied(wanted: str, tracking: str) -> bool:
+    """Report whether a snap tracking a channel already satisfies a request for another.
+
+    An empty wanted channel means any channel will do, matching what a bare
+    `snap refresh` would keep.
+    """
+    if not wanted:
+        return True
+    if not tracking:
+        return False
+    return normalise_channel(wanted) == normalise_channel(tracking)
+
+
+def lookup_channel(snap: Snap) -> str:
+    """Get the channel to look a snap up on.
+
+    This is the requested channel, or the default channel if none was requested.
+    The default is only installed from if the snap is not already installed, but
+    the snap store must still be asked about a channel to find its confinement.
+    """
+    return snap.channel or snap.default_channel
+
+
 class SnapHandler:
     """Handler for managing snap packages.
 
@@ -27,15 +69,22 @@ class SnapHandler:
     including handling classic confinement and snap connections.
     """
 
-    def __init__(self, system: Worker, snaps: list[Snap]) -> None:
+    def __init__(
+        self, system: Worker, snaps: list[Snap], *, skip_refresh_if_current: bool = False
+    ) -> None:
         """Initialize the SnapHandler.
 
         Args:
             system: System worker for executing commands
             snaps: List of snaps to manage
+            skip_refresh_if_current: Leave an installed snap alone if it is already
+                tracking the requested channel, instead of running `snap refresh`.
+                This avoids contacting the snap store for snaps that are already in
+                place, for example on a machine image built with them pre-installed.
         """
         self.snaps = snaps
         self.system = system
+        self.skip_refresh_if_current = skip_refresh_if_current
 
     async def prepare(self) -> None:
         """Install all configured snaps.
@@ -44,8 +93,47 @@ class SnapHandler:
             Exception: If snap installation fails
         """
         for snap in self.snaps:
-            snap_info = await self.system.snap_info(snap.name, snap.channel)
+            if await self.prepare_if_current(snap):
+                continue
+            snap_info = await self.system.snap_info(snap.name, lookup_channel(snap))
             await self.prepare_snap(snap, snap_info)
+
+    async def prepare_if_current(self, snap: Snap) -> bool:
+        """Finish preparing a snap without refreshing it, if it is already current.
+
+        This only applies if `skip_refresh_if_current` is set and the snap is
+        installed and already tracking the requested channel: it enables the snap
+        if it is disabled and makes its connections. Only the local snapd is
+        asked, because `snap_info` queries the snap store (to find the channel's
+        confinement), which would defeat the point of skipping.
+
+        Args:
+            snap: Snap to prepare
+
+        Returns:
+            True if the snap was handled, otherwise False, in which case the
+            caller should look the snap up with `snap_info` and call `prepare_snap`.
+
+        Raises:
+            Exception: If snapd cannot be queried, or enabling or connecting fails
+        """
+        if not self.skip_refresh_if_current or snap.revision:
+            return False
+
+        local = await self.system.snap_installed_info(snap.name)
+        if not local.installed or not channel_satisfied(snap.channel, local.tracking_channel):
+            return False
+
+        await self._enable_if_disabled(snap.name, local)
+        logger.info(
+            "Snap already installed on the requested channel, skipping refresh",
+            snap=snap.name,
+            version=local.version,
+            revision=local.revision,
+            tracking=local.tracking_channel,
+        )
+        await self._connect_snap(snap)
+        return True
 
     async def prepare_snap(self, snap: Snap, snap_info: SnapInfo) -> None:
         """Install (or refresh) and connect a single snap.
@@ -85,29 +173,24 @@ class SnapHandler:
         """
         logger.debug("Installing snap", snap=snap.name)
 
+        # Without an explicit channel, an installed snap is refreshed on the
+        # channel it is already tracking: the default might be a different
+        # version, and moving to it could be a downgrade or an unsupported upgrade.
+        channel = snap.channel
         if snap_info.installed:
-            # A disabled snap must be enabled before it can be refreshed.
-            if not snap_info.active:
-                enable_cmd = Command(executable="snap", args=["enable", snap.name])
-                await run_exclusive(self.system, enable_cmd)
-                logger.info(
-                    "Enabled disabled snap",
-                    snap=snap.name,
-                    version=snap_info.version,
-                    revision=snap_info.revision,
-                    tracking=snap_info.tracking_channel,
-                )
+            await self._enable_if_disabled(snap.name, snap_info)
             action = "refresh"
             log_action = "Refreshed"
         else:
             action = "install"
             log_action = "Installed"
+            channel = lookup_channel(snap)
 
         # Build command arguments
         args = [action, snap.name]
 
-        if snap.channel:
-            args.extend(["--channel", snap.channel])
+        if channel:
+            args.extend(["--channel", channel])
 
         if snap.revision:
             args.extend(["--revision", snap.revision])
@@ -120,6 +203,23 @@ class SnapHandler:
         await run_exclusive(self.system, cmd)
 
         await self._log_snap_operation(log_action, snap, snap_info)
+
+    async def _enable_if_disabled(self, name: str, info: InstalledSnapInfo) -> None:
+        """Enable an installed snap that is disabled.
+
+        A disabled snap must be enabled before it can be refreshed.
+        """
+        if info.active:
+            return
+        enable_cmd = Command(executable="snap", args=["enable", name])
+        await run_exclusive(self.system, enable_cmd)
+        logger.info(
+            "Enabled disabled snap",
+            snap=name,
+            version=info.version,
+            revision=info.revision,
+            tracking=info.tracking_channel,
+        )
 
     async def _log_snap_operation(self, log_action: str, snap: Snap, before: SnapInfo) -> None:
         """Log that a snap was installed or refreshed.

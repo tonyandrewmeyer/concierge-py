@@ -3,7 +3,7 @@
 from typing import TYPE_CHECKING, Any
 
 from concierge.core.logging import get_logger
-from concierge.packages.snap_handler import SnapHandler
+from concierge.packages.snap_handler import SnapHandler, channel_satisfied
 from concierge.providers.base import default_controller_name
 from concierge.system.command import Command
 from concierge.system.helpers import run_exclusive
@@ -33,6 +33,7 @@ class LXD:
         """
         self.system = system
         self._bootstrap = config.providers.lxd.bootstrap
+        self._skip_snap_refresh = config.overrides.skip_snap_refresh
         self._controller_name = config.providers.lxd.controller_name
         self._model_defaults = config.providers.lxd.model_defaults
         self._bootstrap_constraints = config.providers.lxd.bootstrap_constraints
@@ -108,6 +109,14 @@ class LXD:
             Exception: If installation fails
         """
         snap = self.snaps[0]
+        snap_handler = SnapHandler(
+            self.system, self.snaps, skip_refresh_if_current=self._skip_snap_refresh
+        )
+
+        # If LXD is already on the right channel and refreshes are being skipped,
+        # there is nothing to stop or refresh, and no need to query the snap store.
+        if await snap_handler.prepare_if_current(snap):
+            return
 
         # Look up the snap details once, before touching LXD. This queries the
         # snap store, which may fail, and that should leave LXD as it was.
@@ -115,7 +124,7 @@ class LXD:
 
         restart = await self._workaround_refresh(snap_info)
         try:
-            await SnapHandler(self.system, self.snaps).prepare_snap(snap, snap_info)
+            await snap_handler.prepare_snap(snap, snap_info)
         finally:
             # Start LXD again even if the refresh failed, so it is not left stopped.
             if restart:
@@ -188,8 +197,9 @@ class LXD:
         if snap_info.installed:
             # No stop needed if:
             # - No channel specified (refresh on current channel)
-            # - Tracking channel matches target channel
-            if not self.channel or snap_info.tracking_channel == self.channel:
+            # - Tracking channel matches target channel (including "stable"
+            #   against "latest/stable")
+            if channel_satisfied(self.channel, snap_info.tracking_channel):
                 logger.debug(
                     "Skipping LXD stop - no channel change required",
                     tracking=snap_info.tracking_channel,
