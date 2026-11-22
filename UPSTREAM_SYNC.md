@@ -2,7 +2,7 @@
 
 This file tracks synchronization status with [canonical/concierge](https://github.com/canonical/concierge) (the Go implementation).
 
-**Last sync check:** 2026-11-08
+**Last sync check:** 2026-11-22
 **Baseline:** concierge-py created 2024-10-10, syncing changes after that date
 
 ## Pending Changes
@@ -36,6 +36,10 @@ All changes have been ported. See branches below for PRs.
 | [#55](https://github.com/tonyandrewmeyer/concierge-py/pull/55) | `feat/version-subcommand` | `8255a3b` | Add `version` subcommand aliased to the `--version` flag |
 | [#57](https://github.com/tonyandrewmeyer/concierge-py/pull/57) | `fix/home-dir-file-permissions` | `ad8030d` | Write files in the user's home directory as 0600 |
 | [#61](https://github.com/tonyandrewmeyer/concierge-py/pull/61) | `feat/juju-controller-name` | `7310397` | Allow the Juju controller name to be set per provider (draft: large) |
+| [#66](https://github.com/tonyandrewmeyer/concierge-py/pull/66) | `fix/k8s-iptables-forward-accept` | `04549e6` | Set iptables FORWARD policy to ACCEPT when preparing k8s |
+| [#67](https://github.com/tonyandrewmeyer/concierge-py/pull/67) | `feat/log-snap-revision-version` | `304bd6e` | Log snap revision and version (draft: large) |
+| [#68](https://github.com/tonyandrewmeyer/concierge-py/pull/68) | `feat/skip-snap-refresh` | `a285abe` | Add `--skip-snap-refresh` (draft: large; stacked on #67) |
+| [#69](https://github.com/tonyandrewmeyer/concierge-py/pull/69) | `fix/k8s-microk8s-default-channel-fresh-install` | `4564973` | Only apply the default k8s/microk8s channels to fresh installs (stacked on #68) |
 
 ### Previously Merged
 
@@ -96,7 +100,7 @@ These changes don't apply to the Python implementation:
 - `d6548eb` - Viper nil-value workaround (Viper is Go-specific; Python uses Pydantic)
 - `89a3728` - Replace `cmdMu` + `map[string]*sync.Mutex` with `sync.Map.LoadOrStore` in `RunExclusive`, plus comments documenting Go pflag `Get*` error discards. The Go change is a Coverity-finding refactor with no behavioural change; Python's `run_exclusive` already uses an `asyncio.Lock` + dict pattern that is idiomatic and equivalent, and the pflag comments have no analogue in Typer-based code.
 - `e904ac9`, `600fdca` - Release-time secscan / SBOM workflows for the Go binary
-- `14aaea5`, `c3f5a01`, `25e26be`, `54cc160`, `0b0c130`, `785cf2a`, `01cc700`, `deb9ce0` - Go toolchain version bumps
+- `14aaea5`, `c3f5a01`, `25e26be`, `54cc160`, `0b0c130`, `785cf2a`, `01cc700`, `deb9ce0`, `0b0cf4d` - Go toolchain version bumps
 - `3ef5241` - Add 386/armhf/riscv64 targets to `.goreleaser.yaml` (Python wheels don't use goreleaser)
 - `606b004` - Charm Tech OP0xx dependabot conventions (rename `.yml`→`.yaml`, `gomod` groups) — needs human review: concierge-py's dependabot config already has its own pip/github-actions structure with cooldowns and grouping, and the Go-lane spec doesn't map cleanly to Python's pip lane
 - `87eab71` - Hash-pin all third-party actions and drop `zizmor.yaml` — needs human review: concierge-py hash-pins some actions (`setup-uv`, `actions/checkout@v4.3.1` in `zizmor.yaml`) but not others, and dropping the local zizmor policy needs a repo-wide audit first
@@ -112,3 +116,5 @@ These changes don't apply to the Python implementation:
 - `90cb9ab` - Add a Workshop dev-environment config (`.workshop/dev.yaml`, Go SDK, `go build`/`test`/`vet` actions, Pi agent harness hook) — Go-toolchain-specific dev sandbox tooling with no uv/ruff/ty analogue
 - `1ba9693` - Describe Concierge's security model in the Go docs site (`docs/explanation/security.md`) — documentation for the Sphinx site concierge-py doesn't have; the behaviour it describes (0600 files, SEC0045 events) is tracked in #57 and #36
 - `d62a760` - Share format/lint and test jobs between push and release Go workflows via reusable `_checks.yaml`, plus an `All tests passed` aggregator — Go toolchain jobs (go fmt, staticcheck, govulncheck, spread matrix); concierge-py's `ci.yaml` has no equivalent split, so needs human review only if a required-check aggregator is wanted
+- `6ea98ec` - Run `uv lock` before packing the `charmcraft init` template in the `provider-lxd-init-no-bootstrap` spread test (Go spread integration test only, no unit-test analogue)
+- `01caaef` - Fix zizmor `ref-version-mismatch` comments and switch to `$/` self-repository reusable-workflow calls in the Go repo's own workflows (`_tests.yaml`, `release.yaml`, `tiobe.yaml`, etc.) — those workflows and pins don't exist in concierge-py
