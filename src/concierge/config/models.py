@@ -164,6 +164,7 @@ class ConfigOverrides(_ConfigBase):
     google_credential_file: str = ""
     extra_snaps: list[str] = field(default_factory=list)
     extra_debs: list[str] = field(default_factory=list)
+    skip_snap_refresh: bool = False
 
 
 @dataclass

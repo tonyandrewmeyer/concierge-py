@@ -284,7 +284,9 @@ class TestPlanExecute:
             await plan.execute("prepare")
 
             # Verify handlers were created
-            mock_snap_handler_class.assert_called_once_with(system, plan.snaps)
+            mock_snap_handler_class.assert_called_once_with(
+                system, plan.snaps, skip_refresh_if_current=False
+            )
             mock_deb_handler_class.assert_called_once_with(system, plan.debs)
 
             # Verify do_action was called for snap and deb handlers

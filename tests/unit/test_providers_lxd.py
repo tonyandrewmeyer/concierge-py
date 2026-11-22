@@ -10,14 +10,16 @@ from concierge.system.command import Command, CommandError
 from concierge.system.models import SnapInfo
 
 
-def _make_lxd(snap_info: SnapInfo, *, channel: str = "5.21/stable") -> tuple[LXD, MagicMock]:
+def _make_lxd(
+    snap_info: SnapInfo, *, channel: str = "5.21/stable", skip_snap_refresh: bool = False
+) -> tuple[LXD, MagicMock]:
     worker = MagicMock()
     worker.run = AsyncMock()
     worker.snap_info = AsyncMock(return_value=snap_info)
-    worker.snap_installed_info = AsyncMock()
+    worker.snap_installed_info = AsyncMock(return_value=snap_info)
     config = ConciergeConfig(
         providers=ProviderConfig(lxd=LXDConfig(enable=True, channel=channel)),
-        overrides=ConfigOverrides(),
+        overrides=ConfigOverrides(skip_snap_refresh=skip_snap_refresh),
     )
     return LXD(worker, config), worker
 
@@ -82,3 +84,41 @@ class TestLXDInstall:
             await lxd._install()
 
         assert _snap_commands(worker)[-1] == ["start", "lxd"]
+
+    @pytest.mark.asyncio
+    async def test_no_stop_when_channel_only_differs_in_form(self) -> None:
+        lxd, worker = _make_lxd(
+            SnapInfo(installed=True, active=True, tracking_channel="latest/stable"),
+            channel="stable",
+        )
+
+        await lxd._install()
+
+        assert _snap_commands(worker) == [["refresh", "lxd", "--channel", "stable"]]
+
+    @pytest.mark.asyncio
+    async def test_skip_snap_refresh_leaves_current_lxd_alone(self) -> None:
+        lxd, worker = _make_lxd(
+            SnapInfo(installed=True, active=True, tracking_channel="5.21/stable"),
+            skip_snap_refresh=True,
+        )
+
+        await lxd._install()
+
+        worker.snap_info.assert_not_awaited()
+        assert _snap_commands(worker) == []
+
+    @pytest.mark.asyncio
+    async def test_skip_snap_refresh_still_changes_channel(self) -> None:
+        lxd, worker = _make_lxd(
+            SnapInfo(installed=True, active=True, tracking_channel="5.0/stable"),
+            skip_snap_refresh=True,
+        )
+
+        await lxd._install()
+
+        assert _snap_commands(worker) == [
+            ["stop", "lxd"],
+            ["refresh", "lxd", "--channel", "5.21/stable"],
+            ["start", "lxd"],
+        ]

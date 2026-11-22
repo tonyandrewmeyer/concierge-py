@@ -90,6 +90,7 @@ the environment variable version will always take precedent. The equivalents are
 | `--google-credential-file` | `CONCIERGE_GOOGLE_CREDENTIAL_FILE` |
 |      `--extra-snaps`       |      `CONCIERGE_EXTRA_SNAPS`       |
 |       `--extra-debs`       |       `CONCIERGE_EXTRA_DEBS`       |
+|   `--skip-snap-refresh`    |   `CONCIERGE_SKIP_SNAP_REFRESH`    |
 
 ### Command Examples
 

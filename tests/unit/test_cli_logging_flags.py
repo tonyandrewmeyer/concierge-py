@@ -95,3 +95,30 @@ def test_cli_forwards_trace_to_restore(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert recorded["trace"] is True
     assert recorded["verbose"] is True
+
+
+@pytest.mark.parametrize(
+    ("argv", "env", "expected"),
+    [
+        (["prepare", "-p", "dev"], {}, False),
+        (["prepare", "-p", "dev", "--skip-snap-refresh"], {}, True),
+        (["prepare", "-p", "dev"], {"CONCIERGE_SKIP_SNAP_REFRESH": "1"}, True),
+    ],
+)
+def test_cli_forwards_skip_snap_refresh(
+    argv: list[str], env: dict[str, str], expected: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    recorded: list[Any] = []
+
+    async def fake_prepare(*args: Any, **kwargs: Any) -> None:
+        recorded.extend(args)
+
+    monkeypatch.delenv("CONCIERGE_SKIP_SNAP_REFRESH", raising=False)
+    for key, value in env.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.setattr(app, "run_prepare", fake_prepare)
+
+    app.main(argv)
+
+    overrides = recorded[2]
+    assert overrides.skip_snap_refresh is expected

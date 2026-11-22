@@ -63,6 +63,7 @@ class MicroK8s:
         self._bootstrap_constraints = config.providers.microk8s.bootstrap_constraints
         self.addons = config.providers.microk8s.addons
         self._image_registry = config.providers.microk8s.image_registry
+        self._skip_snap_refresh = config.overrides.skip_snap_refresh
 
         # Determine channel with precedence: override > config > computed default
         if config.overrides.microk8s_channel:
@@ -152,7 +153,9 @@ class MicroK8s:
         Raises:
             Exception: If installation fails
         """
-        snap_handler = SnapHandler(self.system, self.snaps)
+        snap_handler = SnapHandler(
+            self.system, self.snaps, skip_refresh_if_current=self._skip_snap_refresh
+        )
         await snap_handler.prepare()
 
     async def _configure_image_registry(self) -> None:

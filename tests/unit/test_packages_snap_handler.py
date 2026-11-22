@@ -1,6 +1,7 @@
 """Unit tests for the SnapHandler."""
 
 import asyncio
+import dataclasses
 import io
 import logging
 from typing import TYPE_CHECKING
@@ -9,7 +10,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from concierge.packages import snap_handler as snap_handler_module
-from concierge.packages.snap_handler import SnapHandler
+from concierge.packages.snap_handler import SnapHandler, channel_satisfied, normalise_channel
 from concierge.system.dryrun import DryRunWorker
 from concierge.system.models import InstalledSnapInfo, Snap, SnapInfo
 
@@ -292,3 +293,167 @@ class TestSnapHandlerPrepareSnap:
             ["install", "lxd", "--channel", "5.21/stable", "--classic"],
             ["connect", "lxd:foo"],
         ]
+
+
+class TestChannelSatisfied:
+    """Tests for channel normalisation and comparison."""
+
+    @pytest.mark.parametrize(
+        ("channel", "expected"),
+        [
+            ("", ""),
+            ("stable", "latest/stable"),
+            ("edge", "latest/edge"),
+            ("edge/fix", "latest/edge/fix"),
+            ("3", "3/stable"),
+            ("3/stable", "3/stable"),
+            ("latest/stable", "latest/stable"),
+            ("1.32-classic/stable", "1.32-classic/stable"),
+            ("3/edge/fix", "3/edge/fix"),
+        ],
+    )
+    def test_normalise_channel(self, channel: str, expected: str) -> None:
+        assert normalise_channel(channel) == expected
+
+    @pytest.mark.parametrize(
+        ("wanted", "tracking", "expected"),
+        [
+            ("", "", True),
+            ("", "3/stable", True),
+            ("3/stable", "", False),
+            ("stable", "latest/stable", True),
+            ("3", "3/stable", True),
+            ("3/stable", "3/edge", False),
+            ("3.6/stable", "3/stable", False),
+        ],
+    )
+    def test_channel_satisfied(self, wanted: str, tracking: str, expected: bool) -> None:
+        assert channel_satisfied(wanted, tracking) is expected
+
+
+def _make_skip_handler(
+    snap: Snap, local: InstalledSnapInfo, *, skip: bool = True
+) -> tuple[SnapHandler, MagicMock]:
+    worker = MagicMock()
+    worker.snap_info = AsyncMock(return_value=SnapInfo(**dataclasses.asdict(local)))
+    worker.snap_installed_info = AsyncMock(return_value=local)
+    worker.run = AsyncMock()
+    return SnapHandler(worker, [snap], skip_refresh_if_current=skip), worker
+
+
+class TestSnapHandlerSkipRefresh:
+    """Tests for leaving snaps alone that are already on the requested channel."""
+
+    @pytest.mark.asyncio
+    async def test_current_snap_is_left_alone(self) -> None:
+        handler, worker = _make_skip_handler(
+            Snap(name="juju", channel="3/stable", connections=["juju:ssh-keys"]),
+            InstalledSnapInfo(installed=True, active=True, tracking_channel="3/stable"),
+        )
+
+        await handler.prepare()
+
+        worker.snap_info.assert_not_awaited()
+        assert [c.args for c in _commands(worker)] == [["connect", "juju:ssh-keys"]]
+
+    @pytest.mark.asyncio
+    async def test_normalised_channel_counts_as_current(self) -> None:
+        handler, worker = _make_skip_handler(
+            Snap(name="charmcraft", channel="stable"),
+            InstalledSnapInfo(installed=True, active=True, tracking_channel="latest/stable"),
+        )
+
+        await handler.prepare()
+
+        worker.snap_info.assert_not_awaited()
+        assert _commands(worker) == []
+
+    @pytest.mark.asyncio
+    async def test_no_channel_requested_counts_as_current(self) -> None:
+        handler, worker = _make_skip_handler(
+            Snap(name="jhack"),
+            InstalledSnapInfo(installed=True, active=True, tracking_channel=""),
+        )
+
+        await handler.prepare()
+
+        assert _commands(worker) == []
+
+    @pytest.mark.asyncio
+    async def test_disabled_current_snap_is_enabled(self) -> None:
+        handler, worker = _make_skip_handler(
+            Snap(name="juju", channel="3/stable"),
+            InstalledSnapInfo(installed=True, active=False, tracking_channel="3/stable"),
+        )
+
+        await handler.prepare()
+
+        assert [c.args for c in _commands(worker)] == [["enable", "juju"]]
+
+    @pytest.mark.asyncio
+    async def test_different_channel_is_refreshed(self) -> None:
+        handler, worker = _make_skip_handler(
+            Snap(name="juju", channel="3.6/stable"),
+            InstalledSnapInfo(installed=True, active=True, tracking_channel="3.5/stable"),
+        )
+
+        await handler.prepare()
+
+        worker.snap_info.assert_awaited_once()
+        assert _install_args(worker) == ["refresh", "juju", "--channel", "3.6/stable"]
+
+    @pytest.mark.asyncio
+    async def test_local_file_snap_is_moved_to_requested_channel(self) -> None:
+        """A snap installed from a file has no tracking channel."""
+        handler, worker = _make_skip_handler(
+            Snap(name="juju", channel="3/stable"),
+            InstalledSnapInfo(installed=True, active=True, tracking_channel=""),
+        )
+
+        await handler.prepare()
+
+        assert _install_args(worker) == ["refresh", "juju", "--channel", "3/stable"]
+
+    @pytest.mark.asyncio
+    async def test_not_installed_snap_is_installed(self) -> None:
+        handler, worker = _make_skip_handler(
+            Snap(name="juju", channel="3/stable"), InstalledSnapInfo()
+        )
+
+        await handler.prepare()
+
+        assert _install_args(worker) == ["install", "juju", "--channel", "3/stable"]
+
+    @pytest.mark.asyncio
+    async def test_pinned_revision_is_still_refreshed(self) -> None:
+        handler, worker = _make_skip_handler(
+            Snap(name="juju", channel="3/stable", revision="30000"),
+            InstalledSnapInfo(installed=True, active=True, tracking_channel="3/stable"),
+        )
+
+        await handler.prepare()
+
+        worker.snap_info.assert_awaited_once()
+        assert _install_args(worker)[:2] == ["refresh", "juju"]
+
+    @pytest.mark.asyncio
+    async def test_not_skipped_unless_enabled(self) -> None:
+        handler, worker = _make_skip_handler(
+            Snap(name="juju", channel="3/stable"),
+            InstalledSnapInfo(installed=True, active=True, tracking_channel="3/stable"),
+            skip=False,
+        )
+
+        await handler.prepare()
+
+        assert _install_args(worker) == ["refresh", "juju", "--channel", "3/stable"]
+
+    @pytest.mark.asyncio
+    async def test_snapd_failure_is_an_error(self) -> None:
+        handler, worker = _make_skip_handler(Snap(name="juju"), InstalledSnapInfo())
+        worker.snap_installed_info.side_effect = RuntimeError("snapd is down")
+
+        with pytest.raises(RuntimeError):
+            await handler.prepare()
+
+        assert _commands(worker) == []

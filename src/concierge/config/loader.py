@@ -196,6 +196,7 @@ def get_env_overrides() -> ConfigOverrides:
         google_credential_file=get_str("google_credential_file"),
         extra_snaps=get_list("extra_snaps"),
         extra_debs=get_list("extra_debs"),
+        skip_snap_refresh=get_bool("skip_snap_refresh"),
     )
 
 

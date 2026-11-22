@@ -247,6 +247,11 @@ class TestGetEnvOverrides:
             assert overrides.juju_channel == ""
             assert overrides.extra_snaps == []
             assert overrides.extra_debs == []
+            assert overrides.skip_snap_refresh is False
+
+    def test_skip_snap_refresh(self) -> None:
+        with patch.dict(os.environ, {"CONCIERGE_SKIP_SNAP_REFRESH": "true"}, clear=True):
+            assert get_env_overrides().skip_snap_refresh is True
 
     def test_disable_juju_true_variants(self) -> None:
         """Test that various truthy values work for disable_juju."""

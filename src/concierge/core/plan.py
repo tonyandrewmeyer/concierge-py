@@ -166,7 +166,11 @@ class Plan:
         await self._validate()
 
         # Prepare/restore packages concurrently
-        snap_handler = SnapHandler(self.system, self.snaps)
+        snap_handler = SnapHandler(
+            self.system,
+            self.snaps,
+            skip_refresh_if_current=self.config.overrides.skip_snap_refresh,
+        )
         deb_handler = DebHandler(self.system, self.debs)
 
         await asyncio.gather(
