@@ -1,0 +1,7 @@
+juju:
+  disable: true
+providers:
+  k8s:
+    enable: true
+    features:
+      local-storage:
