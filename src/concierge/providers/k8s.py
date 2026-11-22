@@ -20,6 +20,8 @@ if TYPE_CHECKING:
 
 logger = get_logger(__name__)
 
+# The default channel from which K8s is installed, if it is not already installed.
+# This is the latest Canonical Kubernetes LTS release.
 DEFAULT_K8S_CHANNEL = "1.32-classic/stable"
 
 
@@ -46,17 +48,19 @@ class K8s:
         self._image_registry = config.providers.k8s.image_registry
         self._skip_snap_refresh = config.overrides.skip_snap_refresh
 
-        # Determine channel with precedence: override > config > default
-        if config.overrides.k8s_channel:
-            self.channel = config.overrides.k8s_channel
-        elif config.providers.k8s.channel:
-            self.channel = config.providers.k8s.channel
-        else:
-            self.channel = DEFAULT_K8S_CHANNEL
+        # The requested channel, with precedence: override > config. Without
+        # one, a fresh install uses the default and an existing install stays on
+        # the channel it is tracking, whatever `self.channel` says.
+        requested = config.overrides.k8s_channel or config.providers.k8s.channel
+        self.channel = requested or DEFAULT_K8S_CHANNEL
 
         self.debs = ["iptables"]
         self.snaps = [
-            Snap(name="k8s", channel=self.channel),
+            Snap(
+                name="k8s",
+                channel=requested,
+                default_channel="" if requested else DEFAULT_K8S_CHANNEL,
+            ),
             Snap(name="kubectl", channel="stable"),
         ]
 

@@ -457,3 +457,62 @@ class TestSnapHandlerSkipRefresh:
             await handler.prepare()
 
         assert _commands(worker) == []
+
+
+class TestSnapHandlerDefaultChannel:
+    """Tests for the default channel, which only applies to fresh installs."""
+
+    @pytest.mark.parametrize(
+        ("snap", "installed", "expected"),
+        [
+            pytest.param(
+                Snap(name="k8s", default_channel="1.32-classic/stable"),
+                False,
+                ["install", "k8s", "--channel", "1.32-classic/stable", "--classic"],
+                id="fresh install uses the default channel",
+            ),
+            pytest.param(
+                Snap(name="k8s", default_channel="1.32-classic/stable"),
+                True,
+                ["refresh", "k8s", "--classic"],
+                id="installed snap stays on its tracking channel",
+            ),
+            pytest.param(
+                Snap(
+                    name="k8s",
+                    channel="1.34-classic/stable",
+                    default_channel="1.32-classic/stable",
+                ),
+                False,
+                ["install", "k8s", "--channel", "1.34-classic/stable", "--classic"],
+                id="explicit channel wins over the default on install",
+            ),
+            pytest.param(
+                Snap(
+                    name="k8s",
+                    channel="1.34-classic/stable",
+                    default_channel="1.32-classic/stable",
+                ),
+                True,
+                ["refresh", "k8s", "--channel", "1.34-classic/stable", "--classic"],
+                id="explicit channel wins over the default on refresh",
+            ),
+        ],
+    )
+    @pytest.mark.asyncio
+    async def test_default_channel(self, snap: Snap, installed: bool, expected: list[str]) -> None:
+        handler, worker = _make_handler(
+            snap,
+            SnapInfo(
+                installed=installed,
+                active=installed,
+                tracking_channel="1.33-classic/stable" if installed else "",
+                classic=True,
+            ),
+        )
+
+        await handler.prepare()
+
+        assert _install_args(worker) == expected
+        # Confinement is looked up on the channel that would be installed from.
+        worker.snap_info.assert_awaited_once_with("k8s", snap.channel or snap.default_channel)

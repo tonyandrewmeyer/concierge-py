@@ -1,6 +1,10 @@
 """Provider protocol for cloud/platform providers."""
 
-from typing import Any, Protocol, runtime_checkable
+from typing import TYPE_CHECKING, Any, Protocol, runtime_checkable
+
+if TYPE_CHECKING:
+    from concierge.system.models import Snap
+    from concierge.system.worker import Worker
 
 # Clouds, as Juju names them, whose controllers run on this machine. Restoring the provider
 # removes them, so Concierge never destroys them itself.
@@ -15,6 +19,21 @@ def is_local_cloud(cloud: str) -> bool:
 def default_controller_name(provider: str) -> str:
     """Get the controller name used for a provider when none is configured."""
     return f"concierge-{provider}"
+
+
+async def installed_channel(system: Worker, snap: Snap) -> str:
+    """Get the channel an installed snap is tracking, if no channel was requested for it.
+
+    The snap handler then leaves the snap on that channel rather than moving it
+    to the default. Otherwise, this returns an empty string. Only the local snapd
+    is asked, to avoid querying the snap store.
+    """
+    if snap.channel:
+        return ""
+    info = await system.snap_installed_info(snap.name)
+    if not info.installed:
+        return ""
+    return info.tracking_channel
 
 
 @runtime_checkable

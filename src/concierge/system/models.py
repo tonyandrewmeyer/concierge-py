@@ -49,6 +49,8 @@ class Snap:
     Attributes:
         name: Name of the snap
         channel: Snap Store channel to install from
+        default_channel: Channel to install from when `channel` is empty and the
+            snap is not yet installed. An installed snap stays on its tracking channel.
         revision: Snap Store revision to install. If both channel and revision
             are set, snap uses the revision; channel is only used for tracking
             after install.
@@ -57,6 +59,7 @@ class Snap:
 
     name: str
     channel: str = ""
+    default_channel: str = ""
     revision: str = ""
     connections: list[str] = field(default_factory=list)
 
